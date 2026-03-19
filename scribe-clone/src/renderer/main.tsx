@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import Dashboard from './pages/Dashboard'
 import Editor from './pages/Editor'
+import Published from './pages/Published'
 import Overlay from './components/Overlay'
 import { useAppStore } from './store/store'
 import './index.css'
@@ -9,7 +10,7 @@ import './index.css'
 const App: React.FC = () => {
   const isOverlay = window.location.hash === '#overlay'
   const [isPaused, setIsPaused] = useState(false)
-  const { currentProcess, setCurrentProcess, setProcesses } = useAppStore()
+  const { currentProcess, setCurrentProcess, setProcesses, publishedUrl } = useAppStore()
 
   React.useEffect(() => {
     (window as any).electron.onRecordingStopped((process: any) => {
@@ -28,6 +29,10 @@ const App: React.FC = () => {
         onStop={() => (window as any).electron.stopRecording()}
       />
     )
+  }
+
+  if (publishedUrl) {
+    return <Published />
   }
 
   if (currentProcess) {

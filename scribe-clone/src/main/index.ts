@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, globalShortcut, protocol } from 'electron'
+import { app, BrowserWindow, ipcMain, globalShortcut, protocol, shell } from 'electron'
 import { join } from 'path'
 import fs from 'fs'
 import { Recorder } from './recorder'
@@ -110,6 +110,28 @@ app.whenReady().then(() => {
     const base64Data = dataUrl.replace(/^data:image\/\w+;base64,/, '')
     fs.writeFileSync(filepath, base64Data, 'base64')
     return filepath
+  })
+
+  ipcMain.handle('publish-process', async (event, process) => {
+    const publishedDir = join(app.getPath('userData'), 'published')
+    if (!fs.existsSync(publishedDir)) {
+      fs.mkdirSync(publishedDir, { recursive: true })
+    }
+
+    const filename = `published-${process.id}.html`
+    const filepath = join(publishedDir, filename)
+
+    await Exporter.exportToHTML(process, filepath)
+
+    // Return a URL-like path that the renderer can display
+    return `file://${filepath}`
+  })
+
+  ipcMain.handle('open-external', async (event, url) => {
+    if (url.startsWith('file://')) {
+      return shell.openPath(url.replace('file://', ''))
+    }
+    return shell.openExternal(url)
   })
 
   ipcMain.handle('delete-process', (event, id) => {

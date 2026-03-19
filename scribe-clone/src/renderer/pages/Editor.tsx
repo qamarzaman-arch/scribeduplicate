@@ -108,7 +108,7 @@ const SortableStepItem = ({
 }
 
 const Editor: React.FC = () => {
-  const { currentProcess, setCurrentProcess } = useAppStore()
+  const { currentProcess, setCurrentProcess, setPublishedUrl } = useAppStore()
   const [editingStepId, setEditingStepId] = React.useState<string | null>(null)
 
   const sensors = useSensors(
@@ -157,6 +157,13 @@ const Editor: React.FC = () => {
     setCurrentProcess(null)
   }
 
+  const handlePublishGuide = async () => {
+    const url = await (window as any).electron.publishProcess(currentProcess)
+    if (url) {
+      setPublishedUrl(url)
+    }
+  }
+
   const handleUpdateScreenshot = async (id: string, dataUrl: string) => {
     const filePath = await (window as any).electron.saveAnnotatedImage(dataUrl)
     const newSteps = currentProcess.steps.map((s) =>
@@ -196,10 +203,17 @@ const Editor: React.FC = () => {
             </div>
             <button
               onClick={handleSaveGuide}
-              className="flex items-center gap-2 px-8 py-3 bg-[#6D4C82] text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl shadow-purple-200 hover:bg-[#5a3e6b] transition-all active:scale-95"
+              className="flex items-center gap-2 px-8 py-3 bg-white border border-[#6D4C82] text-[#6D4C82] font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-purple-50 transition-all active:scale-95"
             >
               <Save size={16} />
-              Save Guide
+              Save
+            </button>
+            <button
+              onClick={handlePublishGuide}
+              className="flex items-center gap-2 px-8 py-3 bg-[#6D4C82] text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl shadow-purple-200 hover:bg-[#5a3e6b] transition-all active:scale-95"
+            >
+              <Share size={16} />
+              Publish
             </button>
           </div>
         </div>
