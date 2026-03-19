@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build && electron-builder",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vites"
   },
   "keywords": [],
   "author": "",
