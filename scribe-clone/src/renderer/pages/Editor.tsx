@@ -16,9 +16,10 @@ import {
   useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ChevronLeft, Save, Share, Trash2, GripVertical, Edit3 } from 'lucide-react'
+import { ChevronLeft, Save, Share, Trash2, GripVertical, Edit3, Sparkles, Layout, FileText } from 'lucide-react'
 import { RecordingStep } from '../../common/types'
 import AnnotationCanvas from '../components/AnnotationCanvas'
+import { motion, AnimatePresence } from 'framer-motion'
 
 const SortableStepItem = ({
   step,
@@ -45,10 +46,13 @@ const SortableStepItem = ({
   }
 
   return (
-    <div
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
       ref={setNodeRef}
       style={style}
-      className="bg-white border border-gray-200 rounded-xl mb-4 overflow-hidden flex"
+      className="bg-white border border-purple-50 rounded-[2rem] mb-6 overflow-hidden flex group/item hover:border-[#6D4C82]/20 hover:shadow-xl hover:shadow-purple-900/5 transition-all duration-300"
     >
       <div {...attributes} {...listeners} className="p-4 bg-gray-50 flex items-center cursor-grab active:cursor-grabbing">
         <GripVertical className="text-gray-400" size={20} />
@@ -56,15 +60,17 @@ const SortableStepItem = ({
       <div className="p-6 flex-1 flex gap-6">
         <div className="w-48 h-32 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 shrink-0">
           {step.screenshot_path && (
-            <div className="relative w-full h-full">
+            <div className="relative w-full h-full group-hover/item:scale-105 transition-transform duration-500">
               <img
                 src={`app-data://${step.screenshot_path}`}
                 alt={`Step ${step.step_number}`}
                 className="w-full h-full object-cover"
               />
               {step.action_type === 'click' && step.metadata.x && step.metadata.y && (
-                <div
-                  className="absolute w-8 h-8 border-4 border-[#6D4C82] rounded-full bg-[#6D4C82]/20 -translate-x-1/2 -translate-y-1/2"
+                <motion.div
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="absolute w-8 h-8 border-4 border-[#6D4C82] rounded-full bg-[#6D4C82]/20 -translate-x-1/2 -translate-y-1/2 shadow-lg shadow-purple-500/50"
                   style={{
                     left: `${(step.metadata.x / 1280) * 100}%`,
                     top: `${(step.metadata.y / (1280 * (9/16))) * 100}%` // Assuming 16:9 for approximation
@@ -167,8 +173,12 @@ const Editor: React.FC = () => {
   const editingStep = currentProcess.steps.find(s => s.id === editingStepId)
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-20">
+    <div className="min-h-screen bg-[#FDFCFE] pb-32">
+      <motion.header
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className="bg-white/80 backdrop-blur-xl border-b border-purple-50 sticky top-0 z-30 shadow-sm"
+      >
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <button
@@ -214,19 +224,40 @@ const Editor: React.FC = () => {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto py-12 px-4">
-        <div className="bg-white rounded-3xl p-10 mb-12 shadow-xl shadow-purple-900/5 border border-purple-50">
-          <span className="text-[#6D4C82] font-extrabold uppercase tracking-[0.2em] text-[10px] mb-4 block">Process Documentation</span>
-          <h2 className="text-4xl font-black text-[#404040] mb-6 tracking-tight">{currentProcess.title}</h2>
-          <p className="text-gray-500 leading-relaxed max-w-2xl">
-            This automated documentation captures the step-by-step workflow for the process.
-            Review each step for accuracy before exporting or sharing.
-          </p>
-          <div className="flex gap-6 mt-8 pt-8 border-t border-gray-50 text-sm font-medium text-gray-400 uppercase tracking-wider">
-            <span>{currentProcess.steps.length} Total Steps</span>
-            <span>Created {new Date(currentProcess.created_at).toLocaleDateString()}</span>
+      <main className="max-w-5xl mx-auto py-20 px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-[3rem] p-16 mb-20 shadow-2xl shadow-purple-900/5 border border-purple-50 relative overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 w-64 h-64 bg-purple-50 rounded-full -mr-32 -mt-32 opacity-50" />
+
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="p-2 bg-purple-50 rounded-lg text-[#6D4C82]">
+                <Sparkles size={16} />
+              </div>
+              <span className="text-[#6D4C82] font-black uppercase tracking-[0.3em] text-[10px]">AI-Generated Documentation</span>
+            </div>
+
+            <h2 className="text-5xl font-black text-[#404040] mb-8 tracking-tight leading-tight">{currentProcess.title}</h2>
+
+            <p className="text-gray-400 text-lg font-medium leading-relaxed max-w-3xl mb-12">
+              Review and refine your recorded process steps. HachiAi has automatically structured your actions into logical documentation.
+            </p>
+
+            <div className="flex gap-12 pt-10 border-t border-purple-50/50">
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] font-black uppercase tracking-widest text-gray-300">Total Progress</span>
+                <span className="text-xl font-bold text-[#404040]">{currentProcess.steps.length} Steps</span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] font-black uppercase tracking-widest text-gray-300">Timestamp</span>
+                <span className="text-xl font-bold text-[#404040]">{new Date(currentProcess.created_at).toLocaleDateString()}</span>
+              </div>
+            </div>
           </div>
-        </div>
+        </motion.div>
 
         <DndContext
           sensors={sensors}
