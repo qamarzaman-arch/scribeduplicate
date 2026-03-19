@@ -1,5 +1,13 @@
-const uiohookNapi = require('uiohook-napi');
-const hook = uiohookNapi.uiohook || uiohookNapi;
+import { createRequire } from 'module';
+const requireNative = createRequire(import.meta.url);
+
+let hook: any;
+try {
+  const uiohookNapi = requireNative('uiohook-napi');
+  hook = uiohookNapi.uiohook || uiohookNapi;
+} catch (err) {
+  console.error('CRITICAL: Failed to load uiohook-napi native module:', err);
+}
 import screenshot from 'screenshot-desktop';
 import activeWin from 'active-win';
 import sharp from 'sharp';

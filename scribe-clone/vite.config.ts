@@ -17,7 +17,7 @@ export default defineConfig({
           build: {
             outDir: 'dist-electron/main',
             rollupOptions: {
-              external: ['uiohook-napi', 'active-win', 'screenshot-desktop', 'sharp', 'electron-store']
+              external: ['uiohook-napi', 'active-win', 'screenshot-desktop', 'sharp', 'electron-store', 'docx']
             }
           }
         }

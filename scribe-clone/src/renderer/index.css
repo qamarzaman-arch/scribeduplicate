@@ -1,14 +1,10 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@layer base {
-  :root {
-    --brand-primary: #6D4C82;
-    --brand-secondary: #404040;
-    --brand-accent: #9B7CAD;
-    --brand-light: #F5F3F7;
-  }
+@theme {
+  --color-brand-primary: #6D4C82;
+  --color-brand-secondary: #404040;
+  --color-brand-accent: #9B7CAD;
+  --color-brand-light: #F5F3F7;
 }
 
 :root {
