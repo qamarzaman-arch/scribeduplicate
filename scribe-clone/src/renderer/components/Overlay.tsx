@@ -9,10 +9,10 @@ interface OverlayProps {
 
 const Overlay: React.FC<OverlayProps> = ({ onStop, onPause, isPaused }) => {
   return (
-    <div className="bg-gray-900/80 backdrop-blur-md text-white p-3 rounded-2xl shadow-2xl flex items-center gap-4 border border-white/20 select-none">
-      <div className="flex items-center gap-2">
-        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-        <span className="text-xs font-bold uppercase tracking-wider">Recording</span>
+    <div className="bg-[#404040]/90 backdrop-blur-md text-white p-3 rounded-2xl shadow-2xl flex items-center gap-4 border border-white/10 select-none">
+      <div className="flex items-center gap-3">
+        <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse shadow-lg shadow-red-500/50" />
+        <span className="text-[10px] font-black uppercase tracking-widest text-white/90">Recording</span>
       </div>
 
       <div className="h-6 w-px bg-white/20" />
@@ -26,7 +26,7 @@ const Overlay: React.FC<OverlayProps> = ({ onStop, onPause, isPaused }) => {
         </button>
         <button
           onClick={onStop}
-          className="bg-red-500 hover:bg-red-600 p-2 rounded-lg transition-colors"
+          className="bg-red-500 hover:bg-red-600 p-2 rounded-xl transition-all hover:scale-105 shadow-lg shadow-red-500/20"
         >
           <Square size={18} fill="currentColor" />
         </button>

@@ -30,14 +30,17 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">HachiAi <span className="font-light text-gray-400">Requirements</span></h1>
+      <div className="flex justify-between items-center mb-12">
+        <div className="flex items-center gap-4">
+          <img src="/logo.png" alt="HachiAi Logo" className="h-10" />
+          <h1 className="text-2xl font-bold text-[#404040]">Requirements <span className="text-[#6D4C82]">Gathering</span></h1>
+        </div>
         <button
           onClick={isRecording ? handleStopRecording : handleStartRecording}
-          className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors ${
+          className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all hover:scale-105 active:scale-95 shadow-lg ${
             isRecording
-              ? 'bg-red-600 hover:bg-red-700 text-white'
-              : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+              ? 'bg-red-500 text-white shadow-red-200'
+              : 'bg-[#6D4C82] text-white shadow-purple-200'
           }`}
         >
           {isRecording ? (
@@ -70,7 +73,7 @@ const Dashboard: React.FC = () => {
               <div className="flex gap-2">
                 <button
                   onClick={() => setCurrentProcess(p)}
-                  className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                  className="p-2 text-[#6D4C82] hover:bg-purple-50 rounded-lg"
                 >
                   <FileEdit size={18} />
                 </button>

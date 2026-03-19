@@ -78,13 +78,13 @@ const AnnotationCanvas: React.FC<AnnotationCanvasProps> = ({ imageSrc, onSave })
       <div className="flex gap-2 p-2 bg-gray-100 rounded-lg w-fit">
         <button
           onClick={() => setTool('highlight')}
-          className={`px-3 py-1 rounded ${tool === 'highlight' ? 'bg-indigo-600 text-white' : 'bg-white'}`}
+          className={`px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${tool === 'highlight' ? 'bg-[#6D4C82] text-white shadow-lg shadow-purple-200' : 'bg-white text-gray-400 hover:text-gray-600'}`}
         >
           Highlight
         </button>
         <button
           onClick={() => setTool('blur')}
-          className={`px-3 py-1 rounded ${tool === 'blur' ? 'bg-indigo-600 text-white' : 'bg-white'}`}
+          className={`px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${tool === 'blur' ? 'bg-[#6D4C82] text-white shadow-lg shadow-purple-200' : 'bg-white text-gray-400 hover:text-gray-600'}`}
         >
           Blur
         </button>

@@ -64,7 +64,7 @@ const SortableStepItem = ({
               />
               {step.action_type === 'click' && step.metadata.x && step.metadata.y && (
                 <div
-                  className="absolute w-8 h-8 border-4 border-indigo-600 rounded-full bg-indigo-600/20 -translate-x-1/2 -translate-y-1/2"
+                  className="absolute w-8 h-8 border-4 border-[#6D4C82] rounded-full bg-[#6D4C82]/20 -translate-x-1/2 -translate-y-1/2"
                   style={{
                     left: `${(step.metadata.x / 1280) * 100}%`,
                     top: `${(step.metadata.y / (1280 * (9/16))) * 100}%` // Assuming 16:9 for approximation
@@ -76,11 +76,11 @@ const SortableStepItem = ({
         </div>
         <div className="flex-1">
           <div className="flex justify-between items-start mb-2">
-            <span className="text-xs font-bold text-indigo-600 uppercase">Step {step.step_number}</span>
+            <span className="text-[10px] font-black text-[#6D4C82] uppercase tracking-widest">Step {step.step_number}</span>
             <div className="flex gap-2">
               <button
                 onClick={() => onEditScreenshot(step.id)}
-                className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+                className="p-1.5 text-gray-400 hover:text-[#6D4C82] hover:bg-purple-50 rounded-lg transition-all"
                 title="Annotate Screenshot"
               >
                 <Edit3 size={18} />
@@ -170,14 +170,16 @@ const Editor: React.FC = () => {
     <div className="min-h-screen bg-gray-50 pb-20">
       <header className="bg-white border-b border-gray-200 sticky top-0 z-20">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-6">
             <button
               onClick={() => setCurrentProcess(null)}
-              className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"
+              className="p-2 hover:bg-gray-100 rounded-xl text-gray-600 transition-all active:scale-90"
             >
               <ChevronLeft size={20} />
             </button>
-            <h1 className="text-xl font-semibold text-gray-900">{currentProcess.title}</h1>
+            <img src="/logo.png" alt="Logo" className="h-8" />
+            <div className="h-6 w-px bg-gray-200" />
+            <h1 className="text-lg font-bold text-[#404040] truncate max-w-[300px]">{currentProcess.title}</h1>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -203,7 +205,7 @@ const Editor: React.FC = () => {
             </button>
             <button
               onClick={handleSaveGuide}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white font-medium hover:bg-indigo-700 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-6 py-2.5 bg-[#6D4C82] text-white font-bold rounded-xl shadow-lg shadow-purple-100 hover:bg-[#5a3e6b] transition-all active:scale-95"
             >
               <Save size={18} />
               Save Guide
@@ -213,9 +215,9 @@ const Editor: React.FC = () => {
       </header>
 
       <main className="max-w-4xl mx-auto py-12 px-4">
-        <div className="bg-white rounded-2xl p-8 mb-12 shadow-sm border border-gray-100">
-          <span className="text-indigo-600 font-bold uppercase tracking-widest text-xs mb-4 block">Process Summary</span>
-          <h2 className="text-3xl font-extrabold text-gray-900 mb-4">{currentProcess.title}</h2>
+        <div className="bg-white rounded-3xl p-10 mb-12 shadow-xl shadow-purple-900/5 border border-purple-50">
+          <span className="text-[#6D4C82] font-extrabold uppercase tracking-[0.2em] text-[10px] mb-4 block">Process Documentation</span>
+          <h2 className="text-4xl font-black text-[#404040] mb-6 tracking-tight">{currentProcess.title}</h2>
           <p className="text-gray-500 leading-relaxed max-w-2xl">
             This automated documentation captures the step-by-step workflow for the process.
             Review each step for accuracy before exporting or sharing.
@@ -255,7 +257,7 @@ const Editor: React.FC = () => {
               <h3 className="text-xl font-bold text-gray-900">Annotate Screenshot - Step {editingStep.step_number}</h3>
               <button
                 onClick={() => setEditingStepId(null)}
-                className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95"
+                className="px-6 py-2 bg-[#6D4C82] text-white rounded-xl font-bold shadow-lg shadow-purple-200 hover:bg-[#5a3e6b] transition-all active:scale-95"
               >
                 Apply & Close
               </button>

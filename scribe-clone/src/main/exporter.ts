@@ -53,9 +53,9 @@ export class Exporter {
           .w-12 { width: 3rem; }
           .h-12 { height: 3rem; }
           .border-4 { border-width: 4px; }
-          .border-indigo-600 { border-color: #4f46e5; }
+          .border-indigo-600 { border-color: #6D4C82; }
           .rounded-full { border-radius: 9999px; }
-          .bg-indigo-600\/20 { background-color: rgba(79, 70, 229, 0.2); }
+          .bg-indigo-600\/20 { background-color: rgba(109, 76, 130, 0.2); }
           .-translate-x-1\/2 { transform: translateX(-50%); }
           .-translate-y-1\/2 { transform: translateY(-50%); }
           .font-extrabold { font-weight: 800; }
@@ -70,8 +70,8 @@ export class Exporter {
           .text-lg { font-size: 1.125rem; }
           .text-2xl { font-size: 1.5rem; }
           .text-5xl { font-size: 3rem; }
-          .text-indigo-600 { color: #4f46e5; }
-          .text-gray-900 { color: #111827; }
+          .text-indigo-600 { color: #6D4C82; }
+          .text-gray-900 { color: #404040; }
           .text-gray-500 { color: #6b7280; }
           .text-gray-400 { color: #9ca3af; }
           .overflow-hidden { overflow: hidden; }
