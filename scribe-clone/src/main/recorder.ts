@@ -1,4 +1,6 @@
 import { uiohook } from 'uiohook-napi';
+// Fallback for different build environments or older versions
+const hook = uiohook || require('uiohook-napi').uiohook;
 import screenshot from 'screenshot-desktop';
 import activeWin from 'active-win';
 import sharp from 'sharp';
@@ -32,17 +34,17 @@ export class Recorder {
     };
     this.isRecording = true;
 
-    uiohook.on('click', (e) => this.handleAction('click', { x: e.x, y: e.y }));
-    uiohook.on('keydown', (e) => this.handleAction('keypress', { key: e.keycode.toString() }));
+    hook.on('click', (e) => this.handleAction('click', { x: e.x, y: e.y }));
+    hook.on('keydown', (e) => this.handleAction('keypress', { key: e.keycode.toString() }));
 
-    uiohook.start();
+    hook.start();
     console.log('Recording started');
   }
 
   public stopRecording(): RecordingProcess | null {
     this.isRecording = false;
-    uiohook.stop();
-    uiohook.removeAllListeners();
+    hook.stop();
+    hook.removeAllListeners();
 
     if (this.currentProcess) {
       // Apply Smart Grouping to captured steps
