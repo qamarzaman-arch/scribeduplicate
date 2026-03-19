@@ -1,5 +1,11 @@
 # HachiAi Requirements Gathering Tool
 
+## 🔗 Connecting Antigravity IDE to Jules
+To fully integrate Jules with your Antigravity IDE environment:
+1. Ensure the **Jules Antigravity Extension** is installed in your Antigravity IDE.
+2. Open this project folder (`scribe-clone`) in Antigravity.
+3. Jules will automatically detect the environment and provide context-aware assistance for this repository.
+
 A professional-grade, cross-platform desktop application for recording user processes and generating editable step-by-step documentation with screenshots. HachiAi is built to work seamlessly across both web applications and native desktop apps.
 
 ## 🚀 Key Features

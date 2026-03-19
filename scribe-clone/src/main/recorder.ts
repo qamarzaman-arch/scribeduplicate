@@ -1,6 +1,6 @@
-import { uIOhook } from 'uiohook-napi';
+import { uiohook } from 'uiohook-napi';
 // Fallback for different build environments or older versions
-const hook = uIOhook || require('uiohook-napi').uIOhook;
+const hook = uiohook || require('uiohook-napi').uiohook;
 import screenshot from 'screenshot-desktop';
 import activeWin from 'active-win';
 import sharp from 'sharp';
