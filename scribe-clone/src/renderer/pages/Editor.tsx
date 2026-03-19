@@ -155,11 +155,11 @@ const Editor: React.FC = () => {
     setCurrentProcess(null)
   }
 
-  const handleUpdateScreenshot = (id: string, dataUrl: string) => {
-    // In a real app, we'd save this to a file and update the path.
-    // For now, we update the screenshot_path to the dataUrl (which Electron can display).
+  const handleUpdateScreenshot = async (id: string, dataUrl: string) => {
+    // Save annotated image to disk and get path
+    const filePath = await (window as any).electron.saveAnnotatedImage(dataUrl)
     const newSteps = currentProcess.steps.map((s) =>
-      s.id === id ? { ...s, screenshot_path: dataUrl } : s
+      s.id === id ? { ...s, screenshot_path: filePath } : s
     )
     setCurrentProcess({ ...currentProcess, steps: newSteps })
   }
@@ -193,6 +193,13 @@ const Editor: React.FC = () => {
             >
               <Share size={18} />
               Export PDF
+            </button>
+            <button
+              onClick={() => (window as any).electron.exportToDOCX(currentProcess)}
+              className="flex items-center gap-2 px-4 py-2 text-gray-700 font-medium hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <Share size={18} />
+              Export DOCX
             </button>
             <button
               onClick={handleSaveGuide}

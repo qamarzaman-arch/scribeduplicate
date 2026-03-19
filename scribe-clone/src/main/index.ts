@@ -80,10 +80,36 @@ app.whenReady().then(() => {
   ipcMain.handle('save-process', (event, updatedProcess) => {
     const processes: any[] = store.get('processes', []) as any[]
     const index = processes.findIndex(p => p.id === updatedProcess.id)
+    const oldProcess = index !== -1 ? processes[index] : null
+
+    // Cleanup screenshots that were removed from the process
+    if (oldProcess) {
+      const newPaths = new Set(updatedProcess.steps.map((s: any) => s.screenshot_path))
+      oldProcess.steps.forEach((step: any) => {
+        if (!newPaths.has(step.screenshot_path) && step.screenshot_path && fs.existsSync(step.screenshot_path)) {
+          try {
+            fs.unlinkSync(step.screenshot_path)
+          } catch (e) {
+            console.error('Failed to cleanup old screenshot:', e)
+          }
+        }
+      })
+    }
+
     if (index !== -1) {
       processes[index] = updatedProcess
       store.set('processes', processes)
     }
+  })
+
+  ipcMain.handle('save-annotated-image', (event, dataUrl) => {
+    const screenshotsDir = join(app.getPath('userData'), 'screenshots')
+    const filename = `annotated-${Date.now()}.jpg`
+    const filepath = join(screenshotsDir, filename)
+
+    const base64Data = dataUrl.replace(/^data:image\/\w+;base64,/, '')
+    fs.writeFileSync(filepath, base64Data, 'base64')
+    return filepath
   })
 
   ipcMain.handle('delete-process', (event, id) => {
@@ -115,6 +141,18 @@ app.whenReady().then(() => {
     })
     if (filePath) {
       await Exporter.exportToHTML(process, filePath)
+      return true
+    }
+    return false
+  })
+
+  ipcMain.handle('export-docx', async (event, process) => {
+    const { filePath } = await dialog.showSaveDialog({
+      defaultPath: `${process.title}.docx`,
+      filters: [{ name: 'Word Document', extensions: ['docx'] }]
+    })
+    if (filePath) {
+      await Exporter.exportToDOCX(process, filePath)
       return true
     }
     return false

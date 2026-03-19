@@ -8,7 +8,9 @@ contextBridge.exposeInMainWorld('electron', {
   },
   exportToHTML: (process: any) => ipcRenderer.invoke('export-html', process),
   exportToPDF: (process: any) => ipcRenderer.invoke('export-pdf', process),
+  exportToDOCX: (process: any) => ipcRenderer.invoke('export-docx', process),
   getProcesses: () => ipcRenderer.invoke('get-processes'),
   saveProcess: (process: any) => ipcRenderer.invoke('save-process', process),
-  deleteProcess: (id: string) => ipcRenderer.invoke('delete-process', id)
+  deleteProcess: (id: string) => ipcRenderer.invoke('delete-process', id),
+  saveAnnotatedImage: (dataUrl: string) => ipcRenderer.invoke('save-annotated-image', dataUrl)
 })

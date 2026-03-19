@@ -82,7 +82,7 @@ export class Recorder {
 
     try {
       const win = await activeWin();
-      const screenshotPath = await this.takeScreenshot();
+      const screenshotPath = await this.takeScreenshot(win);
 
       let step: RecordingStep = {
         id: uuidv4(),
@@ -108,14 +108,26 @@ export class Recorder {
     }
   }
 
-  private async takeScreenshot(): Promise<string> {
+  private async takeScreenshot(windowInfo?: any): Promise<string> {
     const filename = `screenshot-${Date.now()}.jpg`;
     const filepath = path.join(this.screenshotsDir, filename);
 
     try {
-      // Improved multi-monitor support: capture all screens and pick the primary or relevant one
-      // screenshot-desktop returns the primary monitor by default.
-      const imgBuffer = await screenshot({ format: 'jpg' });
+      // Improved multi-monitor support: capture the screen where the active window is located
+      let screenId: any = undefined;
+      if (windowInfo && windowInfo.bounds) {
+        const screens = await screenshot.listDisplays();
+        // Find the screen that contains the window's top-left corner
+        const targetScreen = screens.find(s =>
+          windowInfo.bounds.x >= s.offsetX &&
+          windowInfo.bounds.x < s.offsetX + s.width &&
+          windowInfo.bounds.y >= s.offsetY &&
+          windowInfo.bounds.y < s.offsetY + s.height
+        );
+        if (targetScreen) screenId = targetScreen.id;
+      }
+
+      const imgBuffer = await screenshot({ format: 'jpg', screen: screenId });
       await sharp(imgBuffer)
         .resize(1280) // Resize for efficiency
         .jpeg({ quality: 80 })

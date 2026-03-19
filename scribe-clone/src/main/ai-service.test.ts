@@ -29,7 +29,7 @@ describe('AIService', () => {
       description: '',
       screenshot_path: '',
       timestamp: Date.now(),
-      metadata: { key: 'Enter', app_name: 'Slack' }
+      metadata: { key: '28', app_name: 'Slack' }
     };
     const desc = await AIService.generateDescription(step);
     expect(desc).toBe('Press Enter in Slack');
