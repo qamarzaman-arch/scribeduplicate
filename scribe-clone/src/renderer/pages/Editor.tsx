@@ -16,10 +16,10 @@ import {
   useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ChevronLeft, Save, Share, Trash2, GripVertical, Edit3, Sparkles, Layout, FileText } from 'lucide-react'
+import { ChevronLeft, Save, Share, Trash2, GripVertical, Edit3, Sparkles } from 'lucide-react'
 import { RecordingStep } from '../../common/types'
 import AnnotationCanvas from '../components/AnnotationCanvas'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 
 const SortableStepItem = ({
   step,
@@ -62,7 +62,7 @@ const SortableStepItem = ({
           {step.screenshot_path && (
             <div className="relative w-full h-full group-hover/item:scale-105 transition-transform duration-500">
               <img
-                src={`app-data://${step.screenshot_path}`}
+                src={step.screenshot_path.startsWith('data:') ? step.screenshot_path : `app-data://${step.screenshot_path}`}
                 alt={`Step ${step.step_number}`}
                 className="w-full h-full object-cover"
               />
@@ -73,7 +73,7 @@ const SortableStepItem = ({
                   className="absolute w-8 h-8 border-4 border-[#6D4C82] rounded-full bg-[#6D4C82]/20 -translate-x-1/2 -translate-y-1/2 shadow-lg shadow-purple-500/50"
                   style={{
                     left: `${(step.metadata.x / 1280) * 100}%`,
-                    top: `${(step.metadata.y / (1280 * (9/16))) * 100}%` // Assuming 16:9 for approximation
+                    top: `${(step.metadata.y / (1280 * (9/16))) * 100}%`
                   }}
                 />
               )}
@@ -83,15 +83,11 @@ const SortableStepItem = ({
         <div className="flex-1">
           <div className="flex justify-between items-start mb-2">
             <span className="text-[10px] font-black text-[#6D4C82] uppercase tracking-widest">Step {step.step_number}</span>
-            <div className="flex gap-2">
-              <button
-                onClick={() => onEditScreenshot(step.id)}
-                className="p-1.5 text-gray-400 hover:text-[#6D4C82] hover:bg-purple-50 rounded-lg transition-all"
-                title="Annotate Screenshot"
-              >
+            <div className="flex gap-2 text-gray-300">
+              <button onClick={() => onEditScreenshot(step.id)} className="p-1.5 hover:text-[#6D4C82] hover:bg-purple-50 rounded-lg transition-all">
                 <Edit3 size={18} />
               </button>
-              <button onClick={() => onDelete(step.id)} className="text-gray-400 hover:text-red-500 transition-colors p-1.5">
+              <button onClick={() => onDelete(step.id)} className="p-1.5 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
                 <Trash2 size={18} />
               </button>
             </div>
@@ -99,10 +95,10 @@ const SortableStepItem = ({
           <input
             type="text"
             value={step.description}
-            className="w-full text-lg font-medium text-gray-900 border-none focus:ring-0 p-0 mb-1"
+            className="w-full text-lg font-bold text-[#404040] border-none focus:ring-0 p-0 mb-1 bg-transparent"
             onChange={(e) => onUpdateDescription(step.id, e.target.value)}
           />
-          <p className="text-sm text-gray-500">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
             {step.metadata.app_name} {step.metadata.window_title ? `• ${step.metadata.window_title}` : ''}
           </p>
         </div>
@@ -162,7 +158,6 @@ const Editor: React.FC = () => {
   }
 
   const handleUpdateScreenshot = async (id: string, dataUrl: string) => {
-    // Save annotated image to disk and get path
     const filePath = await (window as any).electron.saveAnnotatedImage(dataUrl)
     const newSteps = currentProcess.steps.map((s) =>
       s.id === id ? { ...s, screenshot_path: filePath } : s
@@ -179,127 +174,95 @@ const Editor: React.FC = () => {
         animate={{ y: 0, opacity: 1 }}
         className="bg-white/80 backdrop-blur-xl border-b border-purple-50 sticky top-0 z-30 shadow-sm"
       >
-        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-6">
+        <div className="max-w-7xl mx-auto px-8 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-8">
             <button
               onClick={() => setCurrentProcess(null)}
-              className="p-2 hover:bg-gray-100 rounded-xl text-gray-600 transition-all active:scale-90"
+              className="p-2.5 hover:bg-gray-100 rounded-2xl text-gray-400 transition-all active:scale-90"
             >
               <ChevronLeft size={20} />
             </button>
-            <img src="/logo.png" alt="Logo" className="h-8" />
-            <div className="h-6 w-px bg-gray-200" />
-            <h1 className="text-lg font-bold text-[#404040] truncate max-w-[300px]">{currentProcess.title}</h1>
+            <div className="flex items-center gap-4">
+              <img src="/logo.png" alt="Logo" className="h-6" />
+              <div className="h-6 w-px bg-purple-100" />
+              <h1 className="text-sm font-black text-[#404040] uppercase tracking-widest truncate max-w-[400px]">{currentProcess.title}</h1>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => (window as any).electron.exportToHTML(currentProcess)}
-              className="flex items-center gap-2 px-4 py-2 text-gray-700 font-medium hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <Share size={18} />
-              Export HTML
-            </button>
-            <button
-              onClick={() => (window as any).electron.exportToPDF(currentProcess)}
-              className="flex items-center gap-2 px-4 py-2 text-gray-700 font-medium hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <Share size={18} />
-              Export PDF
-            </button>
-            <button
-              onClick={() => (window as any).electron.exportToDOCX(currentProcess)}
-              className="flex items-center gap-2 px-4 py-2 text-gray-700 font-medium hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <Share size={18} />
-              Export DOCX
-            </button>
+          <div className="flex items-center gap-4">
+            <div className="flex bg-gray-100/50 p-1 rounded-2xl">
+              <button onClick={() => (window as any).electron.exportToHTML(currentProcess)} className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-[#6D4C82] transition-colors">HTML</button>
+              <button onClick={() => (window as any).electron.exportToPDF(currentProcess)} className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-[#6D4C82] transition-colors">PDF</button>
+              <button onClick={() => (window as any).electron.exportToDOCX(currentProcess)} className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-[#6D4C82] transition-colors">DOCX</button>
+            </div>
             <button
               onClick={handleSaveGuide}
-              className="flex items-center gap-2 px-6 py-2.5 bg-[#6D4C82] text-white font-bold rounded-xl shadow-lg shadow-purple-100 hover:bg-[#5a3e6b] transition-all active:scale-95"
+              className="flex items-center gap-2 px-8 py-3 bg-[#6D4C82] text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl shadow-purple-200 hover:bg-[#5a3e6b] transition-all active:scale-95"
             >
-              <Save size={18} />
+              <Save size={16} />
               Save Guide
             </button>
           </div>
         </div>
-      </header>
+      </motion.header>
 
       <main className="max-w-5xl mx-auto py-20 px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-[3rem] p-16 mb-20 shadow-2xl shadow-purple-900/5 border border-purple-50 relative overflow-hidden"
+          className="bg-white rounded-[4rem] p-20 mb-20 shadow-2xl shadow-purple-900/5 border border-purple-50 relative overflow-hidden text-center"
         >
-          <div className="absolute top-0 right-0 w-64 h-64 bg-purple-50 rounded-full -mr-32 -mt-32 opacity-50" />
-
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="p-2 bg-purple-50 rounded-lg text-[#6D4C82]">
-                <Sparkles size={16} />
-              </div>
-              <span className="text-[#6D4C82] font-black uppercase tracking-[0.3em] text-[10px]">AI-Generated Documentation</span>
+          <div className="absolute top-0 right-0 w-80 h-80 bg-purple-50 rounded-full -mr-40 -mt-40 opacity-30" />
+          <div className="relative z-10 flex flex-col items-center">
+            <div className="flex items-center gap-3 mb-10 p-2 px-4 bg-purple-50 rounded-full text-[#6D4C82] w-fit">
+              <Sparkles size={14} fill="currentColor" />
+              <span className="text-[10px] font-black uppercase tracking-[0.4em]">AI Analysis Complete</span>
             </div>
-
-            <h2 className="text-5xl font-black text-[#404040] mb-8 tracking-tight leading-tight">{currentProcess.title}</h2>
-
-            <p className="text-gray-400 text-lg font-medium leading-relaxed max-w-3xl mb-12">
-              Review and refine your recorded process steps. HachiAi has automatically structured your actions into logical documentation.
+            <h2 className="text-6xl font-black text-[#404040] mb-10 tracking-tight leading-none max-w-4xl">{currentProcess.title}</h2>
+            <p className="text-gray-400 text-xl font-medium leading-relaxed max-w-2xl mb-12">
+              HachiAi has successfully converted your actions into a structured process document.
             </p>
-
-            <div className="flex gap-12 pt-10 border-t border-purple-50/50">
-              <div className="flex flex-col gap-1">
-                <span className="text-[10px] font-black uppercase tracking-widest text-gray-300">Total Progress</span>
-                <span className="text-xl font-bold text-[#404040]">{currentProcess.steps.length} Steps</span>
+            <div className="flex gap-16 py-8 px-12 bg-gray-50 rounded-[2.5rem]">
+              <div className="flex flex-col gap-1 items-center">
+                <span className="text-[10px] font-black uppercase tracking-widest text-gray-300">Workflow Size</span>
+                <span className="text-2xl font-black text-[#6D4C82]">{currentProcess.steps.length} Steps</span>
               </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-[10px] font-black uppercase tracking-widest text-gray-300">Timestamp</span>
-                <span className="text-xl font-bold text-[#404040]">{new Date(currentProcess.created_at).toLocaleDateString()}</span>
+              <div className="h-10 w-px bg-gray-200 self-center" />
+              <div className="flex flex-col gap-1 items-center">
+                <span className="text-[10px] font-black uppercase tracking-widest text-gray-300">Generated On</span>
+                <span className="text-2xl font-black text-[#404040]">{new Date(currentProcess.created_at).toLocaleDateString()}</span>
               </div>
             </div>
           </div>
         </motion.div>
 
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={currentProcess.steps.map(s => s.id)}
-            strategy={verticalListSortingStrategy}
-          >
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={currentProcess.steps.map(s => s.id)} strategy={verticalListSortingStrategy}>
             {currentProcess.steps.map((step) => (
-              <SortableStepItem
-                key={step.id}
-                step={step}
-                onDelete={handleDeleteStep}
-                onUpdateDescription={handleUpdateDescription}
-                onEditScreenshot={setEditingStepId}
-              />
+              <SortableStepItem key={step.id} step={step} onDelete={handleDeleteStep} onUpdateDescription={handleUpdateDescription} onEditScreenshot={setEditingStepId} />
             ))}
           </SortableContext>
         </DndContext>
       </main>
 
       {editingStep && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-8">
-          <div className="bg-white rounded-3xl w-full max-w-5xl max-h-full overflow-hidden flex flex-col shadow-2xl">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-              <h3 className="text-xl font-bold text-gray-900">Annotate Screenshot - Step {editingStep.step_number}</h3>
-              <button
-                onClick={() => setEditingStepId(null)}
-                className="px-6 py-2 bg-[#6D4C82] text-white rounded-xl font-bold shadow-lg shadow-purple-200 hover:bg-[#5a3e6b] transition-all active:scale-95"
-              >
+        <div className="fixed inset-0 bg-[#404040]/80 backdrop-blur-md z-50 flex items-center justify-center p-12">
+          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-[3rem] w-full max-w-6xl max-h-full overflow-hidden flex flex-col shadow-2xl">
+            <div className="p-8 border-b border-purple-50 flex justify-between items-center bg-gray-50/30">
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] font-black text-[#6D4C82] uppercase tracking-widest">Step {editingStep.step_number}</span>
+                <h3 className="text-2xl font-black text-[#404040]">Annotate & Redact</h3>
+              </div>
+              <button onClick={() => setEditingStepId(null)} className="px-10 py-4 bg-[#6D4C82] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-purple-200 hover:bg-[#5a3e6b] transition-all active:scale-95">
                 Apply & Close
               </button>
             </div>
-            <div className="p-10 flex-1 overflow-auto bg-gray-100/30">
+            <div className="p-12 flex-1 overflow-auto bg-gray-100/20">
               <AnnotationCanvas
                 imageSrc={editingStep.screenshot_path.startsWith('data:') ? editingStep.screenshot_path : `app-data://${editingStep.screenshot_path}`}
                 onSave={(dataUrl) => handleUpdateScreenshot(editingStep.id, dataUrl)}
               />
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
     </div>

@@ -25,6 +25,11 @@ export class Recorder {
   }
 
   public async startRecording(title: string = 'New Recording') {
+    if (!hook || typeof hook.on !== 'function') {
+      console.error('uiohook-napi engine not properly initialized');
+      throw new Error('Recording engine failed to initialize. Please check system permissions.');
+    }
+
     this.currentProcess = {
       id: uuidv4(),
       title,
@@ -33,17 +38,29 @@ export class Recorder {
     };
     this.isRecording = true;
 
-    hook.on('click', (e) => this.handleAction('click', { x: e.x, y: e.y }));
-    hook.on('keydown', (e) => this.handleAction('keypress', { key: e.keycode.toString() }));
+    try {
+      hook.on('click', (e: any) => this.handleAction('click', { x: e.x, y: e.y }));
+      hook.on('keydown', (e: any) => this.handleAction('keypress', { key: e.keycode.toString() }));
 
-    hook.start();
-    console.log('Recording started');
+      hook.start();
+      console.log('Recording started');
+    } catch (err) {
+      console.error('Failed to start uiohook engine:', err);
+      this.isRecording = false;
+      throw err;
+    }
   }
 
   public stopRecording(): RecordingProcess | null {
     this.isRecording = false;
-    hook.stop();
-    hook.removeAllListeners();
+    if (hook && typeof hook.stop === 'function') {
+      try {
+        hook.stop();
+        hook.removeAllListeners();
+      } catch (err) {
+        console.error('Error stopping uiohook engine:', err);
+      }
+    }
 
     if (this.currentProcess) {
       // Apply Smart Grouping to captured steps
