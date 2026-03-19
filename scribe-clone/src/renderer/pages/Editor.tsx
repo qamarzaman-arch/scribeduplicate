@@ -107,7 +107,7 @@ const SortableStepItem = ({
           </p>
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
