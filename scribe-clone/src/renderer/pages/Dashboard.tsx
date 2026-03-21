@@ -5,10 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 
 const Dashboard: React.FC = () => {
   const { processes, setProcesses, isRecording, setIsRecording, setCurrentProcess } = useAppStore()
+  const logoSrc = `${import.meta.env.BASE_URL}logo.png`
 
   const handleStartRecording = async () => {
     try {
-      const title = 'New Recording ' + new Date().toLocaleString()
+      const title = `Requirements Gathering Session ${new Date().toLocaleDateString()}`
       await (window as any).electron.startRecording(title)
       setIsRecording(true)
     } catch (err) {
@@ -37,7 +38,7 @@ const Dashboard: React.FC = () => {
             animate={{ opacity: 1, x: 0 }}
             className="flex flex-col gap-1"
           >
-            <img src="/logo.png" alt="HachiAi Logo" className="h-6 w-fit mb-4" />
+            <img src={logoSrc} alt="HachiAi Logo" className="h-10 w-auto mb-5 object-contain" />
             <h1 className="text-4xl font-black text-[#404040] tracking-tight">
               My <span className="text-[#6D4C82]">Requirements</span>
             </h1>
@@ -112,7 +113,7 @@ const Dashboard: React.FC = () => {
                     </button>
                   </div>
 
-                  <h3 className="text-xl font-black text-[#404040] mb-2 line-clamp-2 leading-tight group-hover:text-[#6D4C82] transition-colors">{p.title}</h3>
+                  <h3 className="text-xl font-black text-[#404040] mb-2 leading-tight break-words whitespace-normal group-hover:text-[#6D4C82] transition-colors">{p.title}</h3>
 
                   <div className="flex items-center justify-between mt-8 pt-6 border-t border-purple-50">
                     <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">

@@ -6,6 +6,7 @@ import renderer from 'vite-plugin-electron-renderer'
 import { resolve } from 'path'
 
 export default defineConfig({
+  base: './',
   plugins: [
     react(),
     tailwindcss(),

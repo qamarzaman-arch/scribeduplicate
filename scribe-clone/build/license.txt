@@ -1,0 +1,39 @@
+HachiAi End User License Agreement
+
+Last updated: March 19, 2026
+
+IMPORTANT: Please read this agreement carefully before installing or using HachiAi.
+
+1. License Grant
+HachiAi grants you a non-exclusive, non-transferable license to install and use this software for internal business or personal workflow documentation purposes.
+
+2. Ownership
+The software, branding, interface, and related materials remain the property of HachiAi and its licensors. This agreement grants a right to use the software, not ownership of it.
+
+3. Permitted Use
+You may use HachiAi to capture screenshots, record workflow steps, annotate exported guides, and generate documentation for lawful purposes only.
+
+4. Restrictions
+You may not:
+- reverse engineer or redistribute the software except where allowed by law,
+- use the software to collect data without proper notice or consent,
+- disable or bypass operating-system security, permission, or privacy controls,
+- use the software for unlawful surveillance or unauthorized monitoring.
+
+5. Privacy and Permissions
+HachiAi may request access to screen capture, keyboard, mouse, accessibility, or other operating-system permissions in order to provide recording functionality. You are responsible for obtaining any legally required notice or consent before recording other people, systems, or data.
+
+6. Local Data Handling
+HachiAi is designed to store recordings, screenshots, and exported guides locally on the device unless you choose to export or share them. You are responsible for handling captured information in compliance with your own privacy, retention, and security obligations.
+
+7. No Warranty
+The software is provided "as is" without warranties of any kind, to the maximum extent permitted by law.
+
+8. Limitation of Liability
+To the maximum extent permitted by law, HachiAi will not be liable for indirect, incidental, special, or consequential damages arising from use of the software.
+
+9. Termination
+This license terminates automatically if you violate this agreement. Upon termination, you must stop using the software and uninstall all copies under your control.
+
+10. Contact
+If you need to replace this agreement with your organization's approved legal language, update this file before distributing the installer.

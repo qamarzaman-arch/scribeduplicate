@@ -111,7 +111,7 @@ export class Exporter {
                   ${step.action_type === 'click' && step.metadata.x && step.metadata.y ? `
                     <div
                       class="absolute w-12 h-12 border-4 border-indigo-600 rounded-full bg-indigo-600/20 -translate-x-1/2 -translate-y-1/2"
-                      style="left: ${(step.metadata.x / 1280) * 100}%; top: ${(step.metadata.y / (1280 * (9/16))) * 100}%;"
+                      style="left: ${(step.metadata.x / 1920) * 100}%; top: ${(step.metadata.y / 1080) * 100}%;"
                     ></div>
                   ` : ''}
                 </div>
@@ -169,6 +169,7 @@ export class Exporter {
                 width: 600,
                 height: 337,
               },
+              type: 'png',
             }),
           ],
           spacing: { after: 600 },
