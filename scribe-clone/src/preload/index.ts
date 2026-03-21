@@ -17,5 +17,6 @@ contextBridge.exposeInMainWorld('electron', {
   saveProcess: (process: any) => ipcRenderer.invoke('save-process', process),
   deleteProcess: (id: string) => ipcRenderer.invoke('delete-process', id),
   saveAnnotatedImage: (dataUrl: string) => ipcRenderer.invoke('save-annotated-image', dataUrl),
-  loadImageData: (imagePath: string) => ipcRenderer.invoke('load-image-data', imagePath)
+  publishProcess: (process: any) => ipcRenderer.invoke('publish-process', process),
+  openExternal: (url: string) => ipcRenderer.invoke('open-external', url)
 })
