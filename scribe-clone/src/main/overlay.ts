@@ -1,7 +1,16 @@
 import { BrowserWindow, screen } from 'electron'
 import { join } from 'path'
+import { app } from 'electron'
 
 let overlayWindow: BrowserWindow | null = null
+
+function getAppIconPath() {
+  return join(app.getAppPath(), 'public', 'logo-mark.png')
+}
+
+function getRendererHtmlPath() {
+  return join(app.getAppPath(), 'dist', 'index.html')
+}
 
 export function createOverlayWindow() {
   if (overlayWindow) return overlayWindow
@@ -9,10 +18,11 @@ export function createOverlayWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize
 
   overlayWindow = new BrowserWindow({
-    width: 200,
-    height: 80,
-    x: width - 220,
-    y: height - 100,
+    width: 280,
+    height: 96,
+    x: width - 300,
+    y: height - 116,
+    icon: getAppIconPath(),
     frame: false,
     transparent: true,
     alwaysOnTop: true,
@@ -27,7 +37,7 @@ export function createOverlayWindow() {
   if (process.env.VITE_DEV_SERVER_URL) {
     overlayWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}#overlay`)
   } else {
-    overlayWindow.loadFile(join(__dirname, '../renderer/index.html'), { hash: 'overlay' })
+    overlayWindow.loadFile(getRendererHtmlPath(), { hash: 'overlay' })
   }
 
   return overlayWindow

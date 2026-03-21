@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HachiAi Requirements Gathering Tool Guide</title>
+    <style>
+      :root {
+        --hachiai-purple: #8f66a5;
+        --hachiai-purple-deep: #6d4c82;
+        --hachiai-ink: #404040;
+        --hachiai-muted: #6f6f78;
+        --hachiai-border: #e6dceb;
+        --hachiai-soft: #f8f2fb;
+        --hachiai-white: #ffffff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Arial, sans-serif;
+        color: var(--hachiai-ink);
+        background:
+          radial-gradient(circle at top right, rgba(143, 102, 165, 0.12), transparent 28%),
+          linear-gradient(180deg, #fcfafe 0%, #ffffff 100%);
+      }
+
+      .page {
+        width: 210mm;
+        min-height: 297mm;
+        margin: 0 auto;
+        padding: 18mm 16mm 18mm;
+      }
+
+      .hero {
+        background: linear-gradient(135deg, rgba(143, 102, 165, 0.14), rgba(109, 76, 130, 0.08));
+        border: 1px solid var(--hachiai-border);
+        border-radius: 28px;
+        padding: 22px 24px;
+        margin-bottom: 22px;
+      }
+
+      .hero-top {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        margin-bottom: 18px;
+      }
+
+      .logo {
+        width: 250px;
+        max-width: 100%;
+        height: auto;
+      }
+
+      .eyebrow {
+        color: var(--hachiai-purple-deep);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 34px;
+        line-height: 1.08;
+        letter-spacing: -0.03em;
+      }
+
+      .subtitle {
+        margin: 14px 0 0;
+        font-size: 15px;
+        line-height: 1.75;
+        color: var(--hachiai-muted);
+        max-width: 92%;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+
+      .section {
+        background: var(--hachiai-white);
+        border: 1px solid var(--hachiai-border);
+        border-radius: 24px;
+        padding: 18px 18px 16px;
+        box-shadow: 0 14px 40px rgba(109, 76, 130, 0.05);
+      }
+
+      .section-wide {
+        grid-column: 1 / -1;
+      }
+
+      h2 {
+        margin: 0 0 10px;
+        font-size: 18px;
+        color: var(--hachiai-purple-deep);
+        letter-spacing: -0.01em;
+      }
+
+      h3 {
+        margin: 14px 0 6px;
+        font-size: 14px;
+        color: var(--hachiai-ink);
+      }
+
+      p {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.7;
+        color: var(--hachiai-muted);
+      }
+
+      ol,
+      ul {
+        margin: 12px 0 0;
+        padding-left: 20px;
+      }
+
+      li {
+        margin: 0 0 10px;
+        font-size: 14px;
+        line-height: 1.65;
+        color: var(--hachiai-ink);
+      }
+
+      .tag {
+        display: inline-block;
+        margin-top: 12px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: var(--hachiai-soft);
+        color: var(--hachiai-purple-deep);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .callout {
+        margin-top: 14px;
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: linear-gradient(135deg, rgba(143, 102, 165, 0.12), rgba(143, 102, 165, 0.05));
+        color: var(--hachiai-ink);
+      }
+
+      .callout p {
+        color: var(--hachiai-ink);
+      }
+
+      .step-list {
+        counter-reset: item;
+        list-style: none;
+        padding-left: 0;
+        margin-top: 12px;
+      }
+
+      .step-list li {
+        position: relative;
+        padding-left: 38px;
+        min-height: 26px;
+      }
+
+      .step-list li::before {
+        counter-increment: item;
+        content: counter(item);
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 24px;
+        height: 24px;
+        border-radius: 999px;
+        background: var(--hachiai-soft);
+        color: var(--hachiai-purple-deep);
+        font-size: 12px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .footer {
+        margin-top: 18px;
+        text-align: center;
+        font-size: 11px;
+        color: #8d8792;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .page-break {
+        break-before: page;
+        page-break-before: always;
+      }
+
+      @page {
+        margin: 0;
+        size: A4;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <section class="hero">
+        <div class="hero-top">
+          <img class="logo" src="./public/logo.png" alt="HachiAi logo" />
+        </div>
+        <div class="eyebrow">Installation And Usage Guide</div>
+        <h1>HachiAi Requirements Gathering Tool</h1>
+        <p class="subtitle">
+          This guide explains how to install the application, launch it for the first time,
+          start and stop recordings, edit guides, annotate screenshots, export documents, and save finished workflows.
+        </p>
+      </section>
+
+      <section class="grid">
+        <article class="section">
+          <h2>What Is Included In The Installer</h2>
+          <ul>
+            <li>The HachiAi desktop application</li>
+            <li>Electron runtime</li>
+            <li>Required application dependencies</li>
+            <li>Branding assets and installer resources</li>
+          </ul>
+          <div class="tag">No separate Node.js, npm, Electron, or extra dependency installation is required.</div>
+        </article>
+
+        <article class="section">
+          <h2>Important Notes Before Use</h2>
+          <ul>
+            <li>The app may request Windows screen, accessibility, or input-monitoring related permissions.</li>
+            <li>These permissions are required for workflow capture and screenshot generation.</li>
+            <li>If Windows SmartScreen appears, users can select More info and then Run anyway if they trust the installer source.</li>
+          </ul>
+        </article>
+
+        <article class="section section-wide">
+          <h2>Installation Steps</h2>
+          <ol class="step-list">
+            <li>Run the setup installer file.</li>
+            <li>Complete the installation steps shown by the installer.</li>
+            <li>A desktop shortcut and Start Menu shortcut will be created during installation.</li>
+            <li>Launch HachiAi Requirements Gathering Tool from the desktop shortcut or Start Menu.</li>
+            <li>Review and accept the privacy agreement on first launch.</li>
+            <li>After acceptance, the main dashboard becomes available for creating or editing guides.</li>
+          </ol>
+        </article>
+
+        <article class="section section-wide">
+          <h2>Dashboard Overview</h2>
+          <p>
+            The dashboard is the main home screen of the tool. It shows saved guides, a button to create a new recording,
+            and options to reopen or delete existing guides.
+          </p>
+          <h3>What Users Can Do On The Dashboard</h3>
+          <ul>
+            <li>Click <strong>New Guide</strong> to start recording a new workflow.</li>
+            <li>Click an existing guide card to open it in the editor.</li>
+            <li>Click the delete icon on a card to remove a saved guide.</li>
+            <li>Review the number of steps captured in each saved guide.</li>
+          </ul>
+        </article>
+      </section>
+    </div>
+
+    <div class="page page-break">
+      <section class="grid">
+        <article class="section section-wide">
+          <h2>How To Start And Stop Recording</h2>
+          <ol class="step-list">
+            <li>From the dashboard, click <strong>New Guide</strong>.</li>
+            <li>The app starts capturing the workflow and shows a compact floating recording bar.</li>
+            <li>Continue performing the steps you want documented.</li>
+            <li>When finished, stop the recording from the floating bar or by returning to the app.</li>
+            <li>After stopping, the guide opens automatically in the editor for review.</li>
+          </ol>
+        </article>
+
+        <article class="section">
+          <h2>Recording Bar Controls</h2>
+          <p>
+            The floating recording bar stays visible while capture is active so the user can control recording quickly.
+          </p>
+          <ul>
+            <li>The left indicator shows that recording is active.</li>
+            <li>The pause or resume button controls the recording state.</li>
+            <li>The stop button finishes recording and opens the guide editor.</li>
+          </ul>
+        </article>
+
+        <article class="section">
+          <h2>What Happens After Recording</h2>
+          <p>
+            Once recording stops, the tool converts captured actions into a structured guide with screenshots, step descriptions,
+            application context, and editing options.
+          </p>
+          <div class="callout">
+            <p><strong>Result:</strong> A complete guide is created and opened in the editor for refinement.</p>
+          </div>
+        </article>
+
+        <article class="section section-wide">
+          <h2>Editing The Guide Title</h2>
+          <p>
+            The guide title can be edited directly inside the editor screen. The title area supports long names and wraps across lines.
+          </p>
+          <ul>
+            <li>Edit the guide title in the top title field.</li>
+            <li>Edit the large heading in the main editor banner if preferred.</li>
+            <li>Use clear descriptive names so the guide is easier to identify later.</li>
+          </ul>
+        </article>
+      </section>
+    </div>
+
+    <div class="page page-break">
+      <section class="grid">
+        <article class="section section-wide">
+          <h2>Editing Steps</h2>
+          <p>
+            Every recorded step can be updated from the editor. Step descriptions are editable and support wrapped multi-line text.
+          </p>
+          <ul>
+            <li>Click inside a step description to rewrite or improve the instruction text.</li>
+            <li>Drag a step using the handle on the left to reorder the workflow.</li>
+            <li>Use the delete icon to remove unnecessary steps.</li>
+            <li>Review the screenshot preview and context shown for each step.</li>
+          </ul>
+        </article>
+
+        <article class="section">
+          <h2>Annotate And Redact Screenshots</h2>
+          <p>
+            Each step screenshot can be edited to highlight important areas or hide sensitive information.
+          </p>
+          <ol class="step-list">
+            <li>Click the edit icon on a step.</li>
+            <li>The screenshot opens in the annotation window.</li>
+            <li>Choose highlight or redact mode.</li>
+            <li>Drag on the screenshot to place the selected annotation.</li>
+            <li>Apply the change and close the annotation window.</li>
+          </ol>
+        </article>
+
+        <article class="section">
+          <h2>Saving The Final Guide</h2>
+          <p>
+            After editing the title, steps, and screenshots, save the guide so it stays available on the dashboard.
+          </p>
+          <ul>
+            <li>Click <strong>Save Guide</strong> in the top-right area of the editor.</li>
+            <li>The tool stores the guide locally and returns it to the saved guides list.</li>
+          </ul>
+        </article>
+
+        <article class="section section-wide">
+          <h2>Exporting The Guide</h2>
+          <p>
+            The editor includes export options so the guide can be shared in different formats.
+          </p>
+          <ul>
+            <li><strong>Save as HTML</strong> creates a web-style guide.</li>
+            <li><strong>Save as PDF</strong> creates a printable document.</li>
+            <li><strong>Save as DOCX</strong> creates a Microsoft Word document.</li>
+          </ul>
+          <div class="callout">
+            <p><strong>Tip:</strong> Finalize the guide title and step text before exporting so the document looks professional.</p>
+          </div>
+        </article>
+
+        <article class="section section-wide">
+          <h2>Recommended Everyday Workflow</h2>
+          <ol class="step-list">
+            <li>Launch the tool and open the dashboard.</li>
+            <li>Start a new guide from the New Guide button.</li>
+            <li>Complete the process you want to capture.</li>
+            <li>Stop recording and review the generated guide.</li>
+            <li>Edit the guide title and improve each step description.</li>
+            <li>Annotate or redact screenshots where needed.</li>
+            <li>Save the guide and export it in the preferred format.</li>
+          </ol>
+        </article>
+      </section>
+
+      <div class="footer">HachiAi Requirements Gathering Tool • Installation And Usage Guide</div>
+    </div>
+  </body>
+</html>

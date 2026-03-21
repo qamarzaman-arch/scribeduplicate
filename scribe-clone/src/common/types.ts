@@ -10,6 +10,7 @@ export interface RecordingStep {
     x?: number;
     y?: number;
     key?: string;
+    fullText?: string;
     window_title?: string;
     app_name?: string;
     url?: string;

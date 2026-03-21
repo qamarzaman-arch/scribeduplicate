@@ -16,10 +16,28 @@ import {
   useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ChevronLeft, Save, Share, Trash2, GripVertical, Edit3, Sparkles } from 'lucide-react'
+import { ChevronLeft, Save, Trash2, GripVertical, Edit3, Sparkles } from 'lucide-react'
 import { RecordingStep } from '../../common/types'
-import AnnotationCanvas from '../components/AnnotationCanvas'
+import AnnotationCanvas, { AnnotationCanvasHandle } from '../components/AnnotationCanvas'
 import { motion } from 'framer-motion'
+
+const getScreenshotSrc = (screenshotPath: string) => {
+  if (!screenshotPath) return ''
+  if (screenshotPath.startsWith('data:')) return screenshotPath
+  if (screenshotPath.startsWith('file://')) return screenshotPath
+
+  try {
+    return new URL(screenshotPath.replace(/\\/g, '/'), 'file:///').toString()
+  } catch {
+    const normalizedPath = screenshotPath.replace(/\\/g, '/')
+    const encodedPath = normalizedPath
+      .split('/')
+      .map((segment, index) => (index === 0 && /^[a-zA-Z]:$/.test(segment) ? segment : encodeURIComponent(segment)))
+      .join('/')
+
+    return `file:///${encodedPath}`
+  }
+}
 
 const SortableStepItem = ({
   step,
@@ -59,10 +77,10 @@ const SortableStepItem = ({
       </div>
       <div className="p-6 flex-1 flex gap-6">
         <div className="w-48 h-32 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 shrink-0">
-          {step.screenshot_path && (
+          {step.screenshot_path ? (
             <div className="relative w-full h-full group-hover/item:scale-105 transition-transform duration-500">
               <img
-                src={step.screenshot_path.startsWith('data:') ? step.screenshot_path : `app-data://${step.screenshot_path}`}
+                src={getScreenshotSrc(step.screenshot_path)}
                 alt={`Step ${step.step_number}`}
                 className="w-full h-full object-cover"
               />
@@ -70,14 +88,16 @@ const SortableStepItem = ({
                 <motion.div
                   initial={{ scale: 0, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  className="absolute w-8 h-8 border-4 border-[#6D4C82] rounded-full bg-[#6D4C82]/20 -translate-x-1/2 -translate-y-1/2 shadow-lg shadow-purple-500/50"
+                  className="absolute w-6 h-6 border-3 border-[#6D4C82] rounded-full bg-[#6D4C82]/20 -translate-x-1/2 -translate-y-1/2 shadow-lg shadow-purple-500/50"
                   style={{
-                    left: `${(step.metadata.x / 1280) * 100}%`,
-                    top: `${(step.metadata.y / (1280 * (9/16))) * 100}%`
+                    left: `${(step.metadata.x / 1920) * 100}%`,
+                    top: `${(step.metadata.y / 1080) * 100}%`
                   }}
                 />
               )}
             </div>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No screenshot</div>
           )}
         </div>
         <div className="flex-1">
@@ -92,10 +112,10 @@ const SortableStepItem = ({
               </button>
             </div>
           </div>
-          <input
-            type="text"
+          <textarea
             value={step.description}
-            className="w-full text-lg font-bold text-[#404040] border-none focus:ring-0 p-0 mb-1 bg-transparent"
+            rows={2}
+            className="w-full text-lg font-bold text-[#404040] border-none focus:ring-0 p-0 mb-1 bg-transparent resize-none leading-snug break-words whitespace-pre-wrap overflow-hidden"
             onChange={(e) => onUpdateDescription(step.id, e.target.value)}
           />
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
@@ -110,6 +130,10 @@ const SortableStepItem = ({
 const Editor: React.FC = () => {
   const { currentProcess, setCurrentProcess, setPublishedUrl } = useAppStore()
   const [editingStepId, setEditingStepId] = React.useState<string | null>(null)
+  const [hasPendingAnnotation, setHasPendingAnnotation] = React.useState(false)
+  const [isSavingAnnotation, setIsSavingAnnotation] = React.useState(false)
+  const [annotationImageSrc, setAnnotationImageSrc] = React.useState('')
+  const annotationCanvasRef = React.useRef<AnnotationCanvasHandle | null>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -120,11 +144,18 @@ const Editor: React.FC = () => {
 
   if (!currentProcess) return null
 
+  const handleUpdateTitle = (title: string) => {
+    setCurrentProcess({ ...currentProcess, title })
+  }
+
   const handleDragEnd = (event: any) => {
     const { active, over } = event
+    if (!over || active.id === over.id) return
+
     if (active.id !== over.id) {
       const oldIndex = currentProcess.steps.findIndex((s) => s.id === active.id)
       const newIndex = currentProcess.steps.findIndex((s) => s.id === over.id)
+      if (oldIndex < 0 || newIndex < 0) return
 
       const newSteps = arrayMove(currentProcess.steps, oldIndex, newIndex).map((step, index) => ({
         ...step,
@@ -174,6 +205,65 @@ const Editor: React.FC = () => {
 
   const editingStep = currentProcess.steps.find(s => s.id === editingStepId)
 
+  const handleOpenAnnotation = (id: string) => {
+    setEditingStepId(id)
+    setHasPendingAnnotation(false)
+    setAnnotationImageSrc('')
+  }
+
+  const handleCloseAnnotation = (force = false) => {
+    if (isSavingAnnotation && !force) return
+    setEditingStepId(null)
+    setHasPendingAnnotation(false)
+    setAnnotationImageSrc('')
+  }
+
+  const handleApplyAnnotation = async () => {
+    if (!editingStep || !annotationCanvasRef.current) {
+      handleCloseAnnotation()
+      return
+    }
+
+    if (!hasPendingAnnotation) {
+      handleCloseAnnotation()
+      return
+    }
+
+    const dataUrl = annotationCanvasRef.current.exportImage()
+    if (!dataUrl) return
+
+    setIsSavingAnnotation(true)
+    try {
+      await handleUpdateScreenshot(editingStep.id, dataUrl)
+      handleCloseAnnotation(true)
+    } finally {
+      setIsSavingAnnotation(false)
+    }
+  }
+
+  React.useEffect(() => {
+    if (!editingStep) return
+
+    let isActive = true
+
+    ;(async () => {
+      try {
+        const imageSrc = await (window as any).electron.loadImageData(editingStep.screenshot_path)
+        if (isActive) {
+          setAnnotationImageSrc(imageSrc || getScreenshotSrc(editingStep.screenshot_path))
+        }
+      } catch {
+        if (isActive) {
+          setAnnotationImageSrc(getScreenshotSrc(editingStep.screenshot_path))
+        }
+      }
+    })()
+
+    return () => {
+      isActive = false
+    }
+  }, [editingStep])
+
   return (
     <div className="min-h-screen bg-[#FDFCFE] pb-32">
       <motion.header
@@ -190,16 +280,22 @@ const Editor: React.FC = () => {
               <ChevronLeft size={20} />
             </button>
             <div className="flex items-center gap-4">
-              <img src="/logo.png" alt="Logo" className="h-6" />
+              <img src={logoSrc} alt="HachiAi Logo" className="h-10 w-auto object-contain" />
               <div className="h-6 w-px bg-purple-100" />
-              <h1 className="text-sm font-black text-[#404040] uppercase tracking-widest truncate max-w-[400px]">{currentProcess.title}</h1>
+              <textarea
+                value={currentProcess.title}
+                onChange={(e) => handleUpdateTitle(e.target.value)}
+                placeholder="Guide title"
+                rows={2}
+                className="text-sm font-black text-[#404040] tracking-wide max-w-[460px] w-full bg-transparent border-none focus:ring-0 p-0 resize-none leading-snug break-words whitespace-pre-wrap overflow-hidden"
+              />
             </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex bg-gray-100/50 p-1 rounded-2xl">
-              <button onClick={() => (window as any).electron.exportToHTML(currentProcess)} className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-[#6D4C82] transition-colors">HTML</button>
-              <button onClick={() => (window as any).electron.exportToPDF(currentProcess)} className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-[#6D4C82] transition-colors">PDF</button>
-              <button onClick={() => (window as any).electron.exportToDOCX(currentProcess)} className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-[#6D4C82] transition-colors">DOCX</button>
+              <button onClick={() => (window as any).electron.exportToHTML(currentProcess)} className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-[#6D4C82] transition-colors">Save as HTML</button>
+              <button onClick={() => (window as any).electron.exportToPDF(currentProcess)} className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-[#6D4C82] transition-colors">Save as PDF</button>
+              <button onClick={() => (window as any).electron.exportToDOCX(currentProcess)} className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-[#6D4C82] transition-colors">Save as DOCX</button>
             </div>
             <button
               onClick={handleSaveGuide}
@@ -231,7 +327,13 @@ const Editor: React.FC = () => {
               <Sparkles size={14} fill="currentColor" />
               <span className="text-[10px] font-black uppercase tracking-[0.4em]">AI Analysis Complete</span>
             </div>
-            <h2 className="text-6xl font-black text-[#404040] mb-10 tracking-tight leading-none max-w-4xl">{currentProcess.title}</h2>
+            <textarea
+              value={currentProcess.title}
+              onChange={(e) => handleUpdateTitle(e.target.value)}
+              placeholder="Name this guide"
+              rows={2}
+              className="text-6xl font-black text-[#404040] mb-10 tracking-tight leading-none max-w-4xl w-full text-center bg-transparent border-none focus:ring-0 p-0 resize-none break-words whitespace-pre-wrap overflow-hidden"
+            />
             <p className="text-gray-400 text-xl font-medium leading-relaxed max-w-2xl mb-12">
               HachiAi has successfully converted your actions into a structured process document.
             </p>
@@ -252,7 +354,7 @@ const Editor: React.FC = () => {
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={currentProcess.steps.map(s => s.id)} strategy={verticalListSortingStrategy}>
             {currentProcess.steps.map((step) => (
-              <SortableStepItem key={step.id} step={step} onDelete={handleDeleteStep} onUpdateDescription={handleUpdateDescription} onEditScreenshot={setEditingStepId} />
+              <SortableStepItem key={step.id} step={step} onDelete={handleDeleteStep} onUpdateDescription={handleUpdateDescription} onEditScreenshot={handleOpenAnnotation} />
             ))}
           </SortableContext>
         </DndContext>
@@ -266,14 +368,25 @@ const Editor: React.FC = () => {
                 <span className="text-[10px] font-black text-[#6D4C82] uppercase tracking-widest">Step {editingStep.step_number}</span>
                 <h3 className="text-2xl font-black text-[#404040]">Annotate & Redact</h3>
               </div>
-              <button onClick={() => setEditingStepId(null)} className="px-10 py-4 bg-[#6D4C82] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-purple-200 hover:bg-[#5a3e6b] transition-all active:scale-95">
-                Apply & Close
-              </button>
+              <div className="flex items-center gap-3">
+                <button onClick={handleCloseAnnotation} className="px-8 py-4 bg-white text-gray-500 rounded-2xl font-black text-xs uppercase tracking-widest border border-gray-200 hover:text-gray-700 transition-all">
+                  Cancel
+                </button>
+                <button
+                  onClick={handleApplyAnnotation}
+                  disabled={isSavingAnnotation}
+                  className="px-10 py-4 bg-[#6D4C82] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-purple-200 hover:bg-[#5a3e6b] transition-all active:scale-95 disabled:opacity-60 disabled:cursor-wait"
+                >
+                  {isSavingAnnotation ? 'Saving...' : 'Apply & Close'}
+                </button>
+              </div>
             </div>
             <div className="p-12 flex-1 overflow-auto bg-gray-100/20">
               <AnnotationCanvas
-                imageSrc={editingStep.screenshot_path.startsWith('data:') ? editingStep.screenshot_path : `app-data://${editingStep.screenshot_path}`}
-                onSave={(dataUrl) => handleUpdateScreenshot(editingStep.id, dataUrl)}
+                key={editingStep.id}
+                ref={annotationCanvasRef}
+                imageSrc={annotationImageSrc}
+                onChange={setHasPendingAnnotation}
               />
             </div>
           </motion.div>

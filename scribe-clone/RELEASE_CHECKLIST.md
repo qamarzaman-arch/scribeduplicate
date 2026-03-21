@@ -1,0 +1,55 @@
+# Windows Release Checklist
+
+Use this checklist before handing the installer to end users.
+
+## 1. Final App Verification
+
+- Run `npm.cmd run dev`
+- Record a short workflow
+- Confirm screenshots, annotation, redact, and exports work
+- Confirm the first-run privacy agreement appears on a fresh profile
+- Confirm the HachiAi logo and Windows icon appear correctly
+
+## 2. Build Preparation
+
+- Close all running app windows
+- Make sure `build/icon.ico` exists
+- Make sure `build/license.txt` contains the legal language you want to ship
+- Make sure `build/vendor/winCodeSign-2.6.0/` exists
+
+## 3. Build Commands
+
+Development build:
+
+```powershell
+npm.cmd run dev
+```
+
+Windows installer build:
+
+```powershell
+npm.cmd run build:win
+```
+
+This project now seeds a repo-local Electron Builder cache automatically, so the Windows installer build does not depend on Developer Mode or Administrator symlink permissions.
+
+## 4. Expected Output
+
+- Standalone packaged app: `release/win-unpacked/`
+- Installer setup file: `release/HachiAi Requirements Gathering Tool-<version>-Setup.exe`
+
+## 5. Manual Installer QA
+
+- Install on a clean Windows machine
+- Launch without installing Node.js, npm, or any extra dependencies
+- Confirm recording starts and stops successfully
+- Confirm screenshots save locally
+- Confirm HTML, PDF, and DOCX export prompts open correctly
+- Confirm Start Menu and desktop shortcuts are created
+- Confirm uninstall removes the app cleanly
+
+## 6. Distribution Notes
+
+- The installer already bundles Electron and runtime dependencies
+- Users should not need to install any separate prerequisite packages
+- Users may still need to grant OS-level screen/accessibility permissions depending on their system policy
