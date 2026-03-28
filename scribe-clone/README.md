@@ -62,6 +62,16 @@ npm run build
 ```
 The executable will be located in the `release/` directory.
 
+To build specifically for Windows:
+```powershell
+npm.cmd run build:win
+```
+
+To build specifically for macOS on a Mac:
+```bash
+npm run build:mac
+```
+
 ## 🧪 Testing
 Run the Vitest-based unit tests for the AI service and core logic:
 ```bash

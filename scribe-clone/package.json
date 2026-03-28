@@ -7,6 +7,8 @@
     "dev": "node scripts/dev.cjs",
     "build": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-win.ps1",
     "build:win": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-win.ps1",
+    "build:mac": "bash ./scripts/build-mac.sh",
+    "package:portable": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-portable.ps1",
     "preview": "vite preview",
     "test": "vitest"
   },
@@ -27,6 +29,12 @@
       "dist-electron/**",
       "public/**",
       "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "build/documents",
+        "to": "documents"
+      }
     ],
     "extraMetadata": {
       "main": "dist-electron/main/index.js"
@@ -50,6 +58,18 @@
         }
       ],
       "artifactName": "${productName}-${version}-Setup.${ext}"
+    },
+    "mac": {
+      "icon": "build/icon.png",
+      "category": "public.app-category.productivity",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "hardenedRuntime": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.inherit.plist"
     },
     "nsis": {
       "oneClick": false,
