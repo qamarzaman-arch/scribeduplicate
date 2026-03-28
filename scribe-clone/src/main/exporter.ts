@@ -1,17 +1,29 @@
-import { RecordingProcess } from '../common/types';
+import { RecordingProcess, RecordingStep } from '../common/types';
 import fs from 'fs';
 import { Document, Packer, Paragraph, TextRun, ImageRun, HeadingLevel } from 'docx';
+import sharp from 'sharp';
+import { createFlowDiagramSvg } from '../common/flow-svg';
+import { generateFlowDiagram, STEP_KIND_LABELS } from '../common/process-helpers';
 
 export class Exporter {
   public static async exportToHTML(process: RecordingProcess, outputPath: string) {
+    const flowDiagram = process.flow_diagram || generateFlowDiagram(process);
+    const flowSvg = createFlowDiagramSvg(flowDiagram, { width: 980 });
+    const flowDataUri = flowSvg ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(flowSvg)}` : '';
+
     // Convert screenshots to Base64 to ensure they load correctly in exported HTML
-    const stepsWithBase64 = await Promise.all(process.steps.map(async (step) => {
+    const attachBase64 = async (step: RecordingStep) => {
+      if (!step.screenshot_path) {
+        return { ...step, base64: '' };
+      }
       if (step.screenshot_path.startsWith('data:')) {
         return { ...step, base64: step.screenshot_path };
       }
       const base64 = fs.readFileSync(step.screenshot_path).toString('base64');
       return { ...step, base64: `data:image/jpeg;base64,${base64}` };
-    }));
+    };
+
+    const stepsWithBase64 = await Promise.all(process.steps.map(attachBase64));
 
     const html = `
       <!DOCTYPE html>
@@ -24,7 +36,7 @@ export class Exporter {
           /* Professional Offline-First Styles */
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
           * { box-sizing: border-box; }
-          body { font-family: 'Inter', system-ui, sans-serif; background-color: #f8fafc; margin: 0; padding: 48px; color: #111827; }
+          body { font-family: 'Inter', system-ui, sans-serif; background-color: #f8fafc; margin: 0; padding: 32px; color: #111827; }
           .max-w-4xl { max-width: 56rem; margin: 0 auto; }
           .text-center { text-align: center; }
           .mb-20 { margin-bottom: 5rem; }
@@ -35,7 +47,7 @@ export class Exporter {
           .p-12 { padding: 3rem; }
           .p-10 { padding: 2.5rem; }
           .pt-12 { padding-top: 3rem; }
-          .space-y-24 > * + * { margin-top: 6rem; }
+          .space-y-24 > * + * { margin-top: 3.5rem; }
           .bg-white { background-color: #ffffff; }
           .rounded-3xl { border-radius: 1.5rem; }
           .rounded-2xl { border-radius: 1rem; }
@@ -65,20 +77,22 @@ export class Exporter {
           .uppercase { text-transform: uppercase; }
           .tracking-widest { letter-spacing: 0.1em; }
           .tracking-tight { letter-spacing: -0.025em; }
-          .text-sm { font-size: 0.875rem; }
-          .text-xs { font-size: 0.75rem; }
-          .text-lg { font-size: 1.125rem; }
-          .text-2xl { font-size: 1.5rem; }
-          .text-5xl { font-size: 3rem; }
+          .text-sm { font-size: 0.8rem; }
+          .text-xs { font-size: 0.7rem; }
+          .text-lg { font-size: 1rem; }
+          .text-2xl { font-size: 1.3rem; }
+          .text-5xl { font-size: 2.4rem; }
           .text-indigo-600 { color: #6D4C82; }
           .text-gray-900 { color: #404040; }
           .text-gray-500 { color: #6b7280; }
           .text-gray-400 { color: #9ca3af; }
           .overflow-hidden { overflow: hidden; }
-          .print-break { page-break-after: always; }
+          .step-card { break-inside: avoid; page-break-inside: avoid; }
+          img { max-width: 100%; height: auto; display: block; }
           @media print {
             body { background: white; }
             .no-print { display: none; }
+            .step-card { break-inside: avoid; page-break-inside: avoid; }
           }
         </style>
       </head>
@@ -88,7 +102,7 @@ export class Exporter {
             <span class="text-indigo-600 font-bold tracking-widest uppercase text-sm mb-4 block">Requirements Gathering Report</span>
             <h1 class="text-5xl font-extrabold mb-6 tracking-tight">${process.title}</h1>
             <p class="text-gray-500 text-lg max-w-2xl mx-auto">
-              This document provides a comprehensive, step-by-step breakdown of the recorded process.
+              ${process.intake.objective || 'This document provides a professional, step-by-step guide to the recorded process.'}
             </p>
             <div class="mt-8 flex justify-center gap-8 text-sm font-semibold text-gray-400 uppercase tracking-wider">
               <span>${process.steps.length} Steps Captured</span>
@@ -96,25 +110,42 @@ export class Exporter {
             </div>
           </header>
 
+          <section class="bg-white rounded-3xl p-10 shadow-sm border border-gray-100 mb-20">
+            <span class="text-indigo-600 font-bold uppercase text-xs tracking-widest mb-3 block">Process Summary</span>
+            <div class="space-y-4 text-gray-900">
+              <p><strong>Process Name:</strong> ${process.intake.processName || process.title}</p>
+              <p><strong>Who Performs It:</strong> ${process.intake.owner || 'Not specified'}</p>
+              <p><strong>Concerned Person's Email:</strong> ${process.intake.contactEmail || 'Not specified'}</p>
+              <p><strong>How Often It Runs:</strong> ${process.intake.frequency || 'Not specified'}</p>
+              <p><strong>Expected Completion Time:</strong> ${process.intake.expectedCompletionTime || 'Not specified'}</p>
+              <p><strong>Outcome:</strong> ${process.intake.objective || 'Not specified'}</p>
+            </div>
+          </section>
+
+          ${flowDataUri ? `
+            <section class="bg-white rounded-3xl p-10 shadow-sm border border-gray-100 mb-20">
+              <span class="text-indigo-600 font-bold uppercase text-xs tracking-widest mb-3 block">Flow Diagram</span>
+              <h2 class="text-2xl font-bold mb-6">Process overview</h2>
+              <img src="${flowDataUri}" class="w-full" />
+            </section>
+          ` : ''}
+
           <div class="space-y-24">
             ${stepsWithBase64.map(step => `
-              <section class="bg-white rounded-3xl p-10 shadow-sm border border-gray-100 print-break relative">
+              <section class="bg-white rounded-3xl p-10 shadow-sm border border-gray-100 relative step-card">
                 <div class="flex justify-between items-start mb-8">
                   <div>
-                    <span class="text-indigo-600 font-bold uppercase text-xs tracking-widest mb-2 block">Step ${step.step_number}</span>
-                    <h2 class="text-2xl font-bold">${step.description}</h2>
-                    <p class="text-gray-400 text-sm mt-1">${step.metadata.app_name || 'System Action'}</p>
+                    <span class="text-indigo-600 font-bold uppercase text-xs tracking-widest mb-2 block">${STEP_KIND_LABELS[step.step_kind]} ${step.step_number}</span>
+                    <h2 class="text-2xl font-bold">${step.title || step.description}</h2>
+                    <p class="text-gray-500 text-sm mt-2">${step.description}</p>
+                    <p class="text-gray-400 text-sm mt-2">${step.metadata.app_name || 'System Action'}</p>
                   </div>
                 </div>
-                <div class="relative rounded-2xl overflow-hidden border border-gray-200 shadow-inner">
-                  <img src="${(step as any).base64}" class="w-full" />
-                  ${step.action_type === 'click' && step.metadata.x && step.metadata.y ? `
-                    <div
-                      class="absolute w-12 h-12 border-4 border-indigo-600 rounded-full bg-indigo-600/20 -translate-x-1/2 -translate-y-1/2"
-                      style="left: ${(step.metadata.x / 1920) * 100}%; top: ${(step.metadata.y / 1080) * 100}%;"
-                    ></div>
-                  ` : ''}
-                </div>
+                ${step.base64 ? `
+                  <div class="relative rounded-2xl overflow-hidden border border-gray-200 shadow-inner">
+                    <img src="${(step as any).base64}" class="w-full" style="max-height:420px; object-fit:contain; background:#f8fafc;" />
+                  </div>
+                ` : '<p class="text-gray-400">No screenshot available for this step.</p>'}
               </section>
             `).join('')}
           </div>
@@ -130,6 +161,9 @@ export class Exporter {
   }
 
   public static async exportToDOCX(process: RecordingProcess, outputPath: string) {
+    const flowDiagram = process.flow_diagram || generateFlowDiagram(process);
+    const flowSvg = createFlowDiagramSvg(flowDiagram, { width: 980 });
+    const flowImageBuffer = flowSvg ? await sharp(Buffer.from(flowSvg)).png().toBuffer() : null;
     const children: any[] = [
       new Paragraph({
         text: process.title,
@@ -138,22 +172,82 @@ export class Exporter {
       }),
       new Paragraph({
         text: `Created on ${new Date(process.created_at).toLocaleString()}`,
-        spacing: { after: 1000 },
+        spacing: { after: 300 },
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ text: `Who performs it: ${process.intake.owner || 'Not specified'}`, bold: true })
+        ],
+        spacing: { after: 120 },
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ text: `Concerned person's email: ${process.intake.contactEmail || 'Not specified'}`, bold: true })
+        ],
+        spacing: { after: 120 },
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ text: `How often it runs: ${process.intake.frequency || 'Not specified'}`, bold: true })
+        ],
+        spacing: { after: 120 },
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ text: `Expected completion time: ${process.intake.expectedCompletionTime || 'Not specified'}`, bold: true })
+        ],
+        spacing: { after: 120 },
+      }),
+      new Paragraph({
+        text: `Outcome: ${process.intake.objective || 'Not specified'}`,
+        spacing: { after: 500 },
       }),
     ];
+
+    if (flowImageBuffer) {
+      children.push(
+        new Paragraph({
+          text: 'Flow Diagram',
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 200, after: 200 },
+        }),
+        new Paragraph({
+          children: [
+            new ImageRun({
+              data: flowImageBuffer,
+              transformation: {
+                width: 560,
+                height: 680,
+              },
+              type: 'png',
+            }),
+          ],
+          spacing: { after: 600 },
+        })
+      );
+    }
 
     for (const step of process.steps) {
       children.push(
         new Paragraph({
-          text: `Step ${step.step_number}: ${step.description}`,
+          text: `${STEP_KIND_LABELS[step.step_kind]} ${step.step_number}: ${step.title || step.description}`,
           heading: HeadingLevel.HEADING_2,
           spacing: { before: 400, after: 200 },
         })
       );
 
+      children.push(
+        new Paragraph({
+          text: step.description,
+          spacing: { after: 200 },
+        })
+      );
+
       // Handle both file paths and data URLs
       let screenshotBuffer: Buffer;
-      if (step.screenshot_path.startsWith('data:')) {
+      if (!step.screenshot_path) {
+        continue;
+      } else if (step.screenshot_path.startsWith('data:')) {
         const base64Data = step.screenshot_path.replace(/^data:image\/\w+;base64,/, '');
         screenshotBuffer = Buffer.from(base64Data, 'base64');
       } else {
@@ -166,8 +260,8 @@ export class Exporter {
             new ImageRun({
               data: screenshotBuffer,
               transformation: {
-                width: 600,
-                height: 337,
+                width: 520,
+                height: 292,
               },
               type: 'png',
             }),
@@ -175,6 +269,7 @@ export class Exporter {
           spacing: { after: 600 },
         })
       );
+
     }
 
     const doc = new Document({

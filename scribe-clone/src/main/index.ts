@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, globalShortcut, protocol, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, globalShortcut, shell } from 'electron'
 import { join } from 'path'
 import fs from 'fs'
 import { Recorder } from './recorder'
@@ -7,12 +7,14 @@ import { createOverlayWindow, closeOverlayWindow } from './overlay'
 import { dialog } from 'electron'
 import Store from 'electron-store'
 import { LEGAL_CONSENT_VERSION } from '../common/legal'
+import { getAllSteps, normalizeProcess } from '../common/process-helpers'
 
 let mainWindow: BrowserWindow | null = null
 const recorder = new Recorder()
 const store = new Store()
 const APP_ID = 'com.hachiai.requirementsgatheringtool'
 const APP_TITLE = 'HachiAi Requirements Gathering Tool'
+let activeRecordingContext: null | { type: 'guide' | 'branch'; processId?: string; stepId?: string; branchId?: string } = null
 
 function getAppIconPath() {
   return join(app.getAppPath(), 'public', 'logo-mark.png')
@@ -20,6 +22,14 @@ function getAppIconPath() {
 
 function getRendererHtmlPath() {
   return join(app.getAppPath(), 'dist', 'index.html')
+}
+
+function getBundledDocumentPath(fileName: string) {
+  if (app.isPackaged) {
+    return join(process.resourcesPath, 'documents', fileName)
+  }
+
+  return join(app.getAppPath(), 'build', 'documents', fileName)
 }
 
 async function createWindow() {
@@ -51,24 +61,34 @@ app.whenReady().then(() => {
   globalShortcut.register('CommandOrControl+Shift+R', async () => {
     if (recorder.isRecording) {
       const process = recorder.stopRecording()
-      if (process) {
+      if (process && activeRecordingContext?.type !== 'branch') {
         const processes: any[] = store.get('processes', []) as any[]
-        processes.push(process)
+        processes.push(normalizeProcess(process))
         store.set('processes', processes)
       }
       closeOverlayWindow()
       mainWindow?.restore()
-      mainWindow?.webContents.send('recording-stopped', process)
+      if (activeRecordingContext?.type === 'branch') {
+        mainWindow?.webContents.send('branch-recording-stopped', {
+          process,
+          context: activeRecordingContext
+        })
+      } else {
+        mainWindow?.webContents.send('recording-stopped', process)
+      }
+      activeRecordingContext = null
     } else {
-      await recorder.startRecording('New Recording (Shortcut)')
+      await recorder.startRecording({ processName: 'New Recording (Shortcut)' })
+      activeRecordingContext = { type: 'guide' }
       createOverlayWindow()
       mainWindow?.minimize()
     }
   })
 
-  ipcMain.handle('start-recording', async (event, title) => {
+  ipcMain.handle('start-recording', async (event, intake) => {
     try {
-      await recorder.startRecording(title)
+      await recorder.startRecording(intake)
+      activeRecordingContext = { type: 'guide' }
       createOverlayWindow()
       mainWindow?.minimize()
       return true
@@ -78,17 +98,43 @@ app.whenReady().then(() => {
     }
   })
 
+  ipcMain.handle('start-branch-recording', async (_event, branchContext) => {
+    try {
+      await recorder.startRecording({ processName: 'Branch Recording' })
+      activeRecordingContext = {
+        type: 'branch',
+        processId: branchContext?.processId,
+        stepId: branchContext?.stepId,
+        branchId: branchContext?.branchId
+      }
+      createOverlayWindow()
+      mainWindow?.minimize()
+      return true
+    } catch (err) {
+      console.error('[Main] Failed to start branch recording:', err)
+      throw err
+    }
+  })
+
   ipcMain.handle('stop-recording', () => {
     try {
       const process = recorder.stopRecording()
-      if (process) {
+      if (process && activeRecordingContext?.type !== 'branch') {
         const processes: any[] = store.get('processes', []) as any[]
-        processes.push(process)
+        processes.push(normalizeProcess(process))
         store.set('processes', processes)
       }
       closeOverlayWindow()
       mainWindow?.restore()
-      mainWindow?.webContents.send('recording-stopped', process)
+      if (activeRecordingContext?.type === 'branch') {
+        mainWindow?.webContents.send('branch-recording-stopped', {
+          process,
+          context: activeRecordingContext
+        })
+      } else {
+        mainWindow?.webContents.send('recording-stopped', process)
+      }
+      activeRecordingContext = null
       return process
     } catch (err) {
       console.error('[Main] Failed to stop recording:', err)
@@ -97,7 +143,13 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('get-processes', () => {
-    return store.get('processes', [])
+    const processes = (store.get('processes', []) as any[]).map((process) => normalizeProcess(process))
+    store.set('processes', processes)
+    return processes
+  })
+
+  ipcMain.handle('get-recording-state', () => {
+    return recorder.isRecording
   })
 
   ipcMain.handle('get-legal-consent-status', () => {
@@ -120,13 +172,14 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('save-process', (event, updatedProcess) => {
+    updatedProcess = normalizeProcess(updatedProcess)
     const processes: any[] = store.get('processes', []) as any[]
     const index = processes.findIndex((p: any) => p.id === updatedProcess.id)
     const oldProcess = index !== -1 ? processes[index] : null
 
     if (oldProcess) {
-      const newPaths = new Set(updatedProcess.steps.map((s: any) => s.screenshot_path))
-      oldProcess.steps.forEach((step: any) => {
+      const newPaths = new Set(getAllSteps(updatedProcess).map((s: any) => s.screenshot_path).filter(Boolean))
+      getAllSteps(oldProcess).forEach((step: any) => {
         if (!newPaths.has(step.screenshot_path) && step.screenshot_path && fs.existsSync(step.screenshot_path)) {
           try {
             fs.unlinkSync(step.screenshot_path)
@@ -179,26 +232,32 @@ app.whenReady().then(() => {
     }
   })
 
-  ipcMain.handle('publish-process', async (event, process) => {
-    const publishedDir = join(app.getPath('userData'), 'published')
-    if (!fs.existsSync(publishedDir)) {
-      fs.mkdirSync(publishedDir, { recursive: true })
-    }
-
-    const filename = `published-${process.id}.html`
-    const filepath = join(publishedDir, filename)
-
-    await Exporter.exportToHTML(process, filepath)
-
-    // Return a URL-like path that the renderer can display
-    return `file://${filepath}`
+  ipcMain.handle('open-local-path', async (_event, targetPath) => {
+    if (!targetPath || typeof targetPath !== 'string') return false
+    const result = await shell.openPath(targetPath)
+    return result === ''
   })
 
-  ipcMain.handle('open-external', async (event, url) => {
-    if (url.startsWith('file://')) {
-      return shell.openPath(url.replace('file://', ''))
-    }
-    return shell.openExternal(url)
+  ipcMain.handle('get-bundled-document-path', async (_event, fileName) => {
+    if (!fileName || typeof fileName !== 'string') return ''
+    return getBundledDocumentPath(fileName)
+  })
+
+  ipcMain.handle('save-bundled-document', async (_event, fileName) => {
+    if (!fileName || typeof fileName !== 'string') return false
+
+    const sourcePath = getBundledDocumentPath(fileName)
+    if (!fs.existsSync(sourcePath)) return false
+
+    const result = await dialog.showSaveDialog({
+      defaultPath: fileName,
+      filters: [{ name: 'PDF Document', extensions: ['pdf'] }]
+    })
+
+    if (result.canceled || !result.filePath) return false
+
+    fs.copyFileSync(sourcePath, result.filePath)
+    return true
   })
 
   ipcMain.handle('delete-process', (event, id) => {
@@ -207,7 +266,7 @@ app.whenReady().then(() => {
       const processToDelete = processes.find((p: any) => p.id === id)
 
       if (processToDelete && processToDelete.steps) {
-        processToDelete.steps.forEach((step: any) => {
+        getAllSteps(processToDelete).forEach((step: any) => {
           if (step.screenshot_path && fs.existsSync(step.screenshot_path)) {
             try {
               fs.unlinkSync(step.screenshot_path)

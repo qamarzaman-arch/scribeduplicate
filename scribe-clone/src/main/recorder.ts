@@ -5,9 +5,10 @@ import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
-import { RecordingStep, RecordingProcess } from '../common/types';
+import { GuideIntakeDetails, RecordingStep, RecordingProcess } from '../common/types';
 import { app, desktopCapturer, screen as electronScreen } from 'electron';
 import { AIService } from './ai-service';
+import { buildStepHighlight, buildStepTitle } from '../common/process-helpers';
 
 /**
  * Advanced Recorder with:
@@ -84,7 +85,7 @@ export class Recorder {
     }
   }
 
-  public async startRecording(title: string = 'New Recording') {
+  public async startRecording(intake?: Partial<GuideIntakeDetails>) {
     console.log('[Recorder] startRecording called. hook type:', typeof hook, 'hook.on type:', typeof hook?.on);
 
     if (!hook || typeof hook.on !== 'function') {
@@ -92,10 +93,20 @@ export class Recorder {
       throw new Error('Recording engine failed to initialize. Please check system permissions.');
     }
 
+    const normalizedIntake: GuideIntakeDetails = {
+      processName: intake?.processName?.trim() || 'New Guide',
+      objective: intake?.objective?.trim() || 'Document the current workflow.',
+      owner: intake?.owner?.trim() || 'Team member',
+      frequency: intake?.frequency?.trim() || 'As needed',
+      expectedCompletionTime: intake?.expectedCompletionTime?.trim() || 'Within business hours',
+      contactEmail: intake?.contactEmail?.trim() || '',
+    };
+
     this.currentProcess = {
       id: uuidv4(),
-      title,
+      title: normalizedIntake.processName,
       created_at: Date.now(),
+      intake: normalizedIntake,
       steps: [],
     };
     this.isRecording = true;
@@ -198,12 +209,23 @@ export class Recorder {
     }
 
     // STEP 3: Save the screenshot with optional click highlight
+    const highlight = buildStepHighlight({
+      action_type: type,
+      metadata
+    } as RecordingStep);
+
     let screenshotPath = '';
+    let screenshotSize = { width: this.bufferWidth, height: this.bufferHeight };
     try {
-      screenshotPath = await this.saveScreenshot(
+      const screenshotResult = await this.saveScreenshot(
         instantBuffer,
-        type === 'click' ? metadata : null
+        highlight
       );
+      screenshotPath = screenshotResult.filePath;
+      screenshotSize = {
+        width: screenshotResult.width,
+        height: screenshotResult.height
+      };
     } catch (err) {
       console.warn('[Recorder] Screenshot save failed (non-fatal):', err);
     }
@@ -214,23 +236,30 @@ export class Recorder {
       process_id: processRef.id,
       step_number: processRef.steps.length + 1,
       action_type: type,
+      step_kind: 'step',
+      title: '',
       description: '',
       screenshot_path: screenshotPath,
       timestamp: now,
       metadata: {
         ...metadata,
+        screenshotWidth: screenshotSize.width,
+        screenshotHeight: screenshotSize.height,
         window_title: windowTitle,
         app_name: appName,
         url: win && 'url' in win ? (win as any).url : undefined,
+        highlight,
       },
     };
 
     // STEP 5: Generate description (non-fatal)
     try {
+      step.title = buildStepTitle(step);
       step.description = await AIService.generateDescription(step);
     } catch (err) {
       console.warn('[Recorder] AI description failed (non-fatal):', err);
-      step.description = `${type} action in ${step.metadata.app_name || 'application'}`;
+      step.title = buildStepTitle(step);
+      step.description = `${step.title}.`;
     }
 
     processRef.steps.push(step);
@@ -244,8 +273,8 @@ export class Recorder {
    */
   private async saveScreenshot(
     buffer: Buffer | null,
-    clickMetadata?: { x: number; y: number } | null
-  ): Promise<string> {
+    highlight?: RecordingStep['metadata']['highlight'] | null
+  ): Promise<{ filePath: string; width: number; height: number }> {
     const filename = `screenshot-${Date.now()}.jpg`;
     const filepath = path.join(this.screenshotsDir, filename);
 
@@ -267,10 +296,12 @@ export class Recorder {
       // If we still don't have an image, create a placeholder
       if (!imgBuffer) {
         console.warn('[Recorder] No screenshot data available, creating placeholder');
+        const placeholderWidth = 1920;
+        const placeholderHeight = 1080;
         await sharp({
           create: { width: 1920, height: 1080, channels: 3, background: { r: 240, g: 240, b: 240 } }
         }).jpeg({ quality: 85 }).toFile(filepath);
-        return filepath;
+        return { filePath: filepath, width: placeholderWidth, height: placeholderHeight };
       }
 
       // Get real dimensions
@@ -279,39 +310,10 @@ export class Recorder {
       const imgHeight = imgMeta.height || 1080;
 
       // If click action, composite a highlight circle onto the image
-      if (clickMetadata && clickMetadata.x !== undefined && clickMetadata.y !== undefined) {
-        const primaryDisplay = electronScreen.getPrimaryDisplay();
-        const scaleFactor = primaryDisplay.scaleFactor || 1;
-        const screenWidth = primaryDisplay.size.width;
-        const screenHeight = primaryDisplay.size.height;
-
-        // Scale click coordinates from screen space to image space
-        const scaledX = Math.round((clickMetadata.x / screenWidth) * imgWidth);
-        const scaledY = Math.round((clickMetadata.y / screenHeight) * imgHeight);
-
-        // Clamp to image bounds
-        const cx = Math.max(0, Math.min(scaledX, imgWidth));
-        const cy = Math.max(0, Math.min(scaledY, imgHeight));
-
-        const r = 30; // circle radius
-        const svgOverlay = Buffer.from(`
-          <svg width="${imgWidth}" height="${imgHeight}" xmlns="http://www.w3.org/2000/svg">
-            <!-- Outer glow -->
-            <circle cx="${cx}" cy="${cy}" r="${r + 8}" fill="none" stroke="rgba(255,50,50,0.3)" stroke-width="6"/>
-            <!-- Main ring -->
-            <circle cx="${cx}" cy="${cy}" r="${r}" fill="rgba(255,50,50,0.18)" stroke="#FF3232" stroke-width="4"/>
-            <!-- Center dot -->
-            <circle cx="${cx}" cy="${cy}" r="5" fill="#FF3232"/>
-            <!-- Crosshair -->
-            <line x1="${cx - r - 10}" y1="${cy}" x2="${cx - r + 5}" y2="${cy}" stroke="#FF3232" stroke-width="3" stroke-linecap="round"/>
-            <line x1="${cx + r - 5}" y1="${cy}" x2="${cx + r + 10}" y2="${cy}" stroke="#FF3232" stroke-width="3" stroke-linecap="round"/>
-            <line x1="${cx}" y1="${cy - r - 10}" x2="${cx}" y2="${cy - r + 5}" stroke="#FF3232" stroke-width="3" stroke-linecap="round"/>
-            <line x1="${cx}" y1="${cy + r - 5}" x2="${cx}" y2="${cy + r + 10}" stroke="#FF3232" stroke-width="3" stroke-linecap="round"/>
-          </svg>
-        `);
-
+      const overlaySvg = highlight ? this.buildHighlightOverlay(highlight, imgWidth, imgHeight) : null;
+      if (overlaySvg) {
         await sharp(imgBuffer)
-          .composite([{ input: svgOverlay, top: 0, left: 0 }])
+          .composite([{ input: overlaySvg, top: 0, left: 0 }])
           .jpeg({ quality: 85 })
           .toFile(filepath);
       } else {
@@ -322,6 +324,7 @@ export class Recorder {
       }
 
       console.log('[Recorder] Screenshot saved:', filepath);
+      return { filePath: filepath, width: imgWidth, height: imgHeight };
     } catch (err) {
       console.error('[Recorder] Screenshot processing failed:', err);
       // Create placeholder
@@ -331,10 +334,51 @@ export class Recorder {
         }).jpeg({ quality: 85 }).toFile(filepath);
       } catch {
         // If even placeholder fails, return empty path
-        return '';
+        return { filePath: '', width: 1920, height: 1080 };
       }
     }
 
-    return filepath;
+    return { filePath: filepath, width: this.bufferWidth, height: this.bufferHeight };
+  }
+
+  private buildHighlightOverlay(highlight: RecordingStep['metadata']['highlight'], imgWidth: number, imgHeight: number) {
+    if (!highlight) return null;
+
+    const label = (highlight.label || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    if (highlight.kind === 'click' && highlight.x !== undefined && highlight.y !== undefined) {
+      const primaryDisplay = electronScreen.getPrimaryDisplay();
+      const screenWidth = primaryDisplay.size.width;
+      const screenHeight = primaryDisplay.size.height;
+      const cx = Math.max(0, Math.min(Math.round((highlight.x / screenWidth) * imgWidth), imgWidth));
+      const cy = Math.max(0, Math.min(Math.round((highlight.y / screenHeight) * imgHeight), imgHeight));
+      const r = 30;
+
+      return Buffer.from(`
+        <svg width="${imgWidth}" height="${imgHeight}" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="${cx}" cy="${cy}" r="${r + 10}" fill="none" stroke="rgba(109,76,130,0.22)" stroke-width="12"/>
+          <circle cx="${cx}" cy="${cy}" r="${r}" fill="rgba(109,76,130,0.18)" stroke="#6D4C82" stroke-width="5"/>
+          <circle cx="${cx}" cy="${cy}" r="5" fill="#6D4C82"/>
+          <rect x="${Math.max(32, cx - 110)}" y="${Math.max(24, cy - 92)}" rx="18" ry="18" width="220" height="44" fill="rgba(64,64,64,0.82)"/>
+          <text x="${Math.max(142, cx)}" y="${Math.max(52, cy - 62)}" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#FFFFFF" text-anchor="middle">${label}</text>
+        </svg>
+      `);
+    }
+
+    const boxX = Math.max(28, highlight.x || 48);
+    const boxY = Math.max(28, highlight.y || 48);
+    const boxWidth = Math.min(imgWidth - boxX - 28, highlight.width || 360);
+    const boxHeight = Math.min(imgHeight - boxY - 28, highlight.height || 120);
+    const icon = highlight.kind === 'scroll' ? 'S' : highlight.kind === 'window-switch' ? 'W' : 'K';
+
+    return Buffer.from(`
+      <svg width="${imgWidth}" height="${imgHeight}" xmlns="http://www.w3.org/2000/svg">
+        <rect x="${boxX}" y="${boxY}" rx="28" ry="28" width="${boxWidth}" height="${boxHeight}" fill="rgba(109,76,130,0.16)" stroke="#6D4C82" stroke-width="5"/>
+        <rect x="${boxX + 18}" y="${boxY + 18}" rx="20" ry="20" width="64" height="64" fill="#6D4C82"/>
+        <text x="${boxX + 50}" y="${boxY + 60}" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#FFFFFF" text-anchor="middle">${icon}</text>
+        <text x="${boxX + 102}" y="${boxY + 48}" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#404040">${label}</text>
+        <text x="${boxX + 102}" y="${boxY + 80}" font-family="Arial, sans-serif" font-size="14" fill="#6B7280">Highlighted action captured automatically</text>
+      </svg>
+    `);
   }
 }
